@@ -70,6 +70,7 @@
             align-items: center;
             justify-content: center;
             gap: 15px;
+            margin-bottom: 15px;
         }
 
         .logo-icon {
@@ -85,10 +86,34 @@
             text-shadow: 0 0 10px rgba(138, 43, 226, 0.3);
         }
 
-        .model-info {
-            margin-top: 10px;
+        .model-selector {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .model-selector label {
             font-size: 0.9rem;
             opacity: 0.8;
+        }
+
+        .model-dropdown {
+            background: var(--card-bg);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: var(--border-radius);
+            padding: 8px 15px;
+            color: var(--text-color);
+            font-size: 0.9rem;
+            cursor: pointer;
+            min-width: 200px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+            transition: var(--transition);
+        }
+
+        .model-dropdown:hover {
+            box-shadow: 0 4px 20px rgba(138, 43, 226, 0.3);
         }
 
         .chat-area {
@@ -263,8 +288,11 @@
                 <div class="logo-icon">🧚</div>
                 <h1>Mythical Dreamscape AI</h1>
             </div>
-            <div class="model-info">
-                Model: <span id="modelName">Loading...</span>
+            <div class="model-selector">
+                <label for="modelDropdown">Model:</label>
+                <select class="model-dropdown" id="modelDropdown">
+                    <option value="">Loading models...</option>
+                </select>
             </div>
         </header>
         
@@ -312,28 +340,53 @@
         const chatInput = document.getElementById('chatInput');
         const sendButton = document.getElementById('sendButton');
         const typingIndicator = document.getElementById('typingIndicator');
-        const modelNameElement = document.getElementById('modelName');
+        const modelDropdown = document.getElementById('modelDropdown');
 
         // Application state
         let currentModel = null;
+        let models = [];
         let dataset = [];
 
         // Load models from data.json
-        async function loadModel() {
+        async function loadModels() {
             try {
                 const response = await fetch('data.json');
                 const data = await response.json();
+                models = data.models;
                 
-                // Use the first model
-                currentModel = data.models[0];
-                dataset = currentModel.dataset;
-                modelNameElement.textContent = currentModel.name;
+                // Populate model dropdown
+                modelDropdown.innerHTML = '';
+                models.forEach(model => {
+                    const option = document.createElement('option');
+                    option.value = model.name;
+                    option.textContent = model.name;
+                    modelDropdown.appendChild(option);
+                });
                 
-                addMessage(`Model "${currentModel.name}" loaded successfully. How can I assist you today?`, 'ai');
+                // Auto-select first model
+                if (models.length > 0) {
+                    modelDropdown.value = models[0].name;
+                    loadSelectedModel();
+                }
+                
             } catch (error) {
-                console.error('Error loading model:', error);
-                addMessage('Error loading model. Please check if data.json exists.', 'ai');
+                console.error('Error loading models:', error);
+                addMessage('Error loading models. Please check if data.json exists.', 'ai');
+                modelDropdown.innerHTML = '<option value="">Error loading models</option>';
             }
+        }
+
+        // Load the selected model
+        function loadSelectedModel() {
+            const selectedModelName = modelDropdown.value;
+            if (!selectedModelName) return;
+            
+            currentModel = models.find(m => m.name === selectedModelName);
+            dataset = currentModel.dataset || [];
+            
+            // Clear chat and show model loaded message
+            chatMessages.innerHTML = '';
+            addMessage(`Model "${currentModel.name}" loaded successfully. How can I assist you today?`, 'ai');
         }
 
         // Add a message to the chat
@@ -635,7 +688,7 @@
                 hideTypingIndicator();
                 
                 if (!currentModel) {
-                    addMessage("Please wait while the model loads...", 'ai');
+                    addMessage("Please select a model first.", 'ai');
                     return;
                 }
                 
@@ -654,6 +707,9 @@
             }
         });
         
+        // Model dropdown change
+        modelDropdown.addEventListener('change', loadSelectedModel);
+        
         // Auto-resize textarea
         chatInput.addEventListener('input', function() {
             this.style.height = 'auto';
@@ -661,7 +717,7 @@
         });
 
         // Initialize the application
-        loadModel();
+        loadModels();
     </script>
 </body>
 </html>
