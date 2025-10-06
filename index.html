@@ -16,24 +16,6 @@
             --transition: all 0.3s ease;
         }
 
-        .theme-nature {
-            --primary-color: #2e8b57;
-            --secondary-color: #98fb98;
-            --background-color: #0a1f0a;
-            --text-color: #e6ffe6;
-            --accent-color: #ffd700;
-            --card-bg: rgba(40, 80, 40, 0.7);
-        }
-
-        .theme-ocean {
-            --primary-color: #1e90ff;
-            --secondary-color: #00ffff;
-            --background-color: #001f3f;
-            --text-color: #e6f7ff;
-            --accent-color: #ff6b6b;
-            --card-bg: rgba(30, 60, 90, 0.7);
-        }
-
         * {
             margin: 0;
             padding: 0;
@@ -64,16 +46,17 @@
         }
 
         .container {
-            max-width: 1200px;
+            max-width: 800px;
             margin: 0 auto;
             padding: 20px;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
         }
 
         header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 30px;
+            text-align: center;
+            margin-bottom: 20px;
             padding: 20px;
             background: var(--card-bg);
             border-radius: var(--border-radius);
@@ -85,6 +68,7 @@
         .logo {
             display: flex;
             align-items: center;
+            justify-content: center;
             gap: 15px;
         }
 
@@ -101,74 +85,14 @@
             text-shadow: 0 0 10px rgba(138, 43, 226, 0.3);
         }
 
-        .model-selector {
-            position: relative;
-        }
-
-        .model-dropdown {
-            background: var(--card-bg);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: var(--border-radius);
-            padding: 12px 20px;
-            color: var(--text-color);
-            font-size: 1rem;
-            cursor: pointer;
-            min-width: 200px;
-            appearance: none;
-            backdrop-filter: blur(10px);
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
-            transition: var(--transition);
-        }
-
-        .model-dropdown:hover {
-            box-shadow: 0 4px 20px rgba(138, 43, 226, 0.3);
-        }
-
-        .chat-container {
-            display: flex;
-            gap: 20px;
-            height: calc(100vh - 200px);
-        }
-
-        .chat-history {
-            flex: 1;
-            background: var(--card-bg);
-            border-radius: var(--border-radius);
-            padding: 20px;
-            overflow-y: auto;
-            backdrop-filter: blur(10px);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .chat-history h2 {
-            margin-bottom: 20px;
-            color: var(--accent-color);
-            font-size: 1.4rem;
-            text-align: center;
-        }
-
-        .history-list {
-            list-style: none;
-        }
-
-        .history-item {
-            padding: 12px 15px;
-            margin-bottom: 10px;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 10px;
-            cursor: pointer;
-            transition: var(--transition);
-            border-left: 3px solid var(--primary-color);
-        }
-
-        .history-item:hover {
-            background: rgba(255, 255, 255, 0.1);
-            transform: translateX(5px);
+        .model-info {
+            margin-top: 10px;
+            font-size: 0.9rem;
+            opacity: 0.8;
         }
 
         .chat-area {
-            flex: 3;
+            flex: 1;
             display: flex;
             flex-direction: column;
             background: var(--card-bg);
@@ -324,22 +248,8 @@
         }
 
         @media (max-width: 768px) {
-            .chat-container {
-                flex-direction: column;
-                height: auto;
-            }
-            
-            .chat-history {
-                max-height: 200px;
-            }
-            
             .message {
                 max-width: 90%;
-            }
-            
-            header {
-                flex-direction: column;
-                gap: 15px;
             }
         }
     </style>
@@ -353,42 +263,31 @@
                 <div class="logo-icon">🧚</div>
                 <h1>Mythical Dreamscape AI</h1>
             </div>
-            <div class="model-selector">
-                <select class="model-dropdown" id="modelSelector">
-                    <option value="">Select a model...</option>
-                </select>
+            <div class="model-info">
+                Model: <span id="modelName">Loading...</span>
             </div>
         </header>
         
-        <div class="chat-container">
-            <div class="chat-history">
-                <h2>Conversation History</h2>
-                <ul class="history-list" id="historyList">
-                    <!-- History items will be added here -->
-                </ul>
+        <div class="chat-area">
+            <div class="chat-messages" id="chatMessages">
+                <div class="message ai-message">
+                    Welcome to the Mythical Dreamscape AI! I'm here to assist you with any questions or thoughts you might have.
+                </div>
             </div>
             
-            <div class="chat-area">
-                <div class="chat-messages" id="chatMessages">
-                    <div class="message ai-message">
-                        Welcome to the Mythical Dreamscape AI! I'm here to assist you with any questions or thoughts you might have. Which model would you like to use today?
-                    </div>
+            <div class="typing-indicator" id="typingIndicator">
+                <div class="typing-dots">
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
                 </div>
-                
-                <div class="typing-indicator" id="typingIndicator">
-                    <div class="typing-dots">
-                        <div class="typing-dot"></div>
-                        <div class="typing-dot"></div>
-                        <div class="typing-dot"></div>
-                    </div>
-                </div>
-                
-                <div class="chat-input-container">
-                    <textarea class="chat-input" id="chatInput" placeholder="Type your message here..." rows="1"></textarea>
-                    <button class="send-button" id="sendButton">
-                        Send <span>➤</span>
-                    </button>
-                </div>
+            </div>
+            
+            <div class="chat-input-container">
+                <textarea class="chat-input" id="chatInput" placeholder="Type your message here..." rows="1"></textarea>
+                <button class="send-button" id="sendButton">
+                    Send <span>➤</span>
+                </button>
             </div>
         </div>
     </div>
@@ -409,44 +308,31 @@
         }
 
         // DOM elements
-        const modelSelector = document.getElementById('modelSelector');
         const chatMessages = document.getElementById('chatMessages');
         const chatInput = document.getElementById('chatInput');
         const sendButton = document.getElementById('sendButton');
         const typingIndicator = document.getElementById('typingIndicator');
-        const historyList = document.getElementById('historyList');
+        const modelNameElement = document.getElementById('modelName');
 
         // Application state
         let currentModel = null;
-        let models = [];
-        let conversationHistory = [];
+        let dataset = [];
 
         // Load models from data.json
-        async function loadModels() {
+        async function loadModel() {
             try {
                 const response = await fetch('data.json');
                 const data = await response.json();
-                models = data.models;
                 
-                // Populate model selector
-                modelSelector.innerHTML = '<option value="">Select a model...</option>';
-                models.forEach(model => {
-                    const option = document.createElement('option');
-                    option.value = model.name;
-                    option.textContent = model.name;
-                    modelSelector.appendChild(option);
-                });
+                // Use the first model
+                currentModel = data.models[0];
+                dataset = currentModel.dataset;
+                modelNameElement.textContent = currentModel.name;
+                
+                addMessage(`Model "${currentModel.name}" loaded successfully. How can I assist you today?`, 'ai');
             } catch (error) {
-                console.error('Error loading models:', error);
-                addMessage('Error loading models. Please check if data.json exists.', 'ai');
-            }
-        }
-
-        // Change theme based on selected model
-        function changeTheme(theme) {
-            document.body.className = '';
-            if (theme && theme !== 'default') {
-                document.body.classList.add(`theme-${theme}`);
+                console.error('Error loading model:', error);
+                addMessage('Error loading model. Please check if data.json exists.', 'ai');
             }
         }
 
@@ -458,29 +344,6 @@
             messageDiv.textContent = text;
             chatMessages.appendChild(messageDiv);
             chatMessages.scrollTop = chatMessages.scrollHeight;
-            
-            // Add to conversation history
-            conversationHistory.push({ sender, text });
-            
-            // Update history list
-            updateHistoryList();
-        }
-
-        // Update the conversation history sidebar
-        function updateHistoryList() {
-            historyList.innerHTML = '';
-            conversationHistory.forEach((msg, index) => {
-                if (msg.sender === 'user') {
-                    const li = document.createElement('li');
-                    li.classList.add('history-item');
-                    li.textContent = msg.text.length > 30 ? msg.text.substring(0, 30) + '...' : msg.text;
-                    li.addEventListener('click', () => {
-                        // Could implement functionality to load past conversations
-                        addMessage('This feature would allow you to revisit past conversations.', 'ai');
-                    });
-                    historyList.appendChild(li);
-                }
-            });
         }
 
         // Show typing indicator
@@ -494,62 +357,257 @@
             typingIndicator.style.display = 'none';
         }
 
+        // Calculate similarity between two strings
+        function calculateSimilarity(str1, str2) {
+            const words1 = new Set(str1.toLowerCase().split(/\s+/));
+            const words2 = new Set(str2.toLowerCase().split(/\s+/));
+            
+            const intersection = new Set([...words1].filter(x => words2.has(x)));
+            const union = new Set([...words1, ...words2]);
+            
+            return intersection.size / union.size;
+        }
+
         // Generate AI response based on input and dataset
-        function generateAIResponse(input, dataset) {
-            // Simple implementation - in a real scenario, this would use more advanced NLP
-            const inputLower = input.toLowerCase();
-            
-            // Find similar inputs in the dataset
-            const similarExamples = dataset.filter(example => {
-                const exampleInput = example.input.toLowerCase();
-                return exampleInput.includes(inputLower) || inputLower.includes(exampleInput) ||
-                       calculateSimilarity(inputLower, exampleInput) > 0.3;
-            });
-            
-            if (similarExamples.length > 0) {
-                // If we have similar examples, use them to generate a response
-                const randomExample = similarExamples[Math.floor(Math.random() * similarExamples.length)];
-                return adaptResponse(randomExample.response, input);
+        function generateAIResponse(input) {
+            // If no dataset is loaded, return a fallback response
+            if (dataset.length === 0) {
+                return "I'm still learning. Could you tell me more about that?";
             }
             
-            // Fallback response if no similar examples found
-            return generateFallbackResponse(input);
+            // Find the most similar examples in the dataset
+            const similarities = dataset.map(example => ({
+                example,
+                similarity: calculateSimilarity(input, example.input)
+            }));
+            
+            // Sort by similarity (highest first)
+            similarities.sort((a, b) => b.similarity - a.similarity);
+            
+            // Take the top 3 most similar examples
+            const topExamples = similarities.slice(0, 3).filter(item => item.similarity > 0.1);
+            
+            // If no similar examples found, return a generic response
+            if (topExamples.length === 0) {
+                return generateFallbackResponse(input);
+            }
+            
+            // Analyze the response patterns from the examples
+            const responsePatterns = analyzeResponsePatterns(topExamples.map(item => item.example.response));
+            
+            // Generate a new response based on the patterns
+            return generateResponseFromPatterns(input, responsePatterns);
         }
 
-        // Calculate similarity between two strings (simple implementation)
-        function calculateSimilarity(str1, str2) {
-            const words1 = str1.split(' ');
-            const words2 = str2.split(' ');
+        // Analyze response patterns from example responses
+        function analyzeResponsePatterns(responses) {
+            const patterns = {
+                greetings: [],
+                questions: [],
+                statements: [],
+                emotions: [],
+                structures: []
+            };
             
-            let matches = 0;
-            words1.forEach(word1 => {
-                if (words2.some(word2 => word2.includes(word1) || word1.includes(word2))) {
-                    matches++;
+            responses.forEach(response => {
+                // Check for greeting patterns
+                if (response.match(/\b(hi|hello|hey|greetings|welcome)\b/i)) {
+                    patterns.greetings.push(response);
                 }
+                
+                // Check for question patterns
+                if (response.includes('?') || response.match(/\b(what|how|why|when|where|who)\b/i)) {
+                    patterns.questions.push(response);
+                }
+                
+                // Check for emotional content
+                if (response.match(/\b(great|good|nice|wonderful|amazing|happy|excited|sorry|sad)\b/i)) {
+                    patterns.emotions.push(response);
+                }
+                
+                // Analyze sentence structure
+                const sentences = response.split(/[.!?]+/).filter(s => s.trim().length > 0);
+                patterns.structures.push({
+                    sentenceCount: sentences.length,
+                    avgLength: response.length / Math.max(sentences.length, 1),
+                    hasQuestions: response.includes('?')
+                });
             });
             
-            return matches / Math.max(words1.length, words2.length);
+            return patterns;
         }
 
-        // Adapt a response from the dataset to better match the input
-        function adaptResponse(response, input) {
-            // Simple adaptation - in a real implementation, this would be more sophisticated
-            const inputWords = input.toLowerCase().split(' ');
-            const responseWords = response.split(' ');
+        // Generate a response based on patterns and input
+        function generateResponseFromPatterns(input, patterns) {
+            const inputLower = input.toLowerCase();
             
-            // Look for question words in input and adjust response accordingly
-            if (inputWords.some(word => ['what', 'how', 'why', 'when', 'where'].includes(word))) {
-                if (!response.endsWith('?')) {
-                    return response + '?';
-                }
+            // Determine response type based on input
+            let responseType = 'statement';
+            if (inputLower.match(/\b(hi|hello|hey|greetings)\b/)) {
+                responseType = 'greeting';
+            } else if (inputLower.includes('?')) {
+                responseType = 'answer';
+            } else if (inputLower.match(/\b(how are you|how do you feel)\b/)) {
+                responseType = 'emotional';
+            }
+            
+            // Build response based on type
+            let response = '';
+            
+            switch(responseType) {
+                case 'greeting':
+                    response = generateGreetingResponse(patterns);
+                    break;
+                case 'answer':
+                    response = generateAnswerResponse(input, patterns);
+                    break;
+                case 'emotional':
+                    response = generateEmotionalResponse(patterns);
+                    break;
+                default:
+                    response = generateStatementResponse(input, patterns);
+            }
+            
+            // Ensure the response is not empty
+            if (!response || response.trim().length === 0) {
+                response = generateFallbackResponse(input);
             }
             
             return response;
         }
 
-        // Generate a fallback response when no good match is found
+        // Generate a greeting response
+        function generateGreetingResponse(patterns) {
+            const greetings = [
+                "Hello there! How can I assist you today?",
+                "Hi! It's great to connect with you. What's on your mind?",
+                "Greetings! I'm here and ready to help. What would you like to talk about?",
+                "Hey! Thanks for reaching out. How can I be of service?"
+            ];
+            
+            // If we have greeting patterns, try to create a more personalized greeting
+            if (patterns.greetings.length > 0) {
+                const randomGreeting = patterns.greetings[Math.floor(Math.random() * patterns.greetings.length)];
+                const words = randomGreeting.split(' ');
+                
+                // Extract the greeting part (usually first 2-4 words)
+                const greetingPart = words.slice(0, Math.min(4, words.length)).join(' ');
+                
+                // Create variations
+                const variations = [
+                    `${greetingPart}! What brings you here today?`,
+                    `${greetingPart}. How can I help you?`,
+                    `${greetingPart}. It's wonderful to connect with you.`
+                ];
+                
+                return variations[Math.floor(Math.random() * variations.length)];
+            }
+            
+            return greetings[Math.floor(Math.random() * greetings.length)];
+        }
+
+        // Generate an answer to a question
+        function generateAnswerResponse(input, patterns) {
+            // Extract the question word
+            const questionWords = ['what', 'how', 'why', 'when', 'where', 'who'];
+            let questionWord = 'what';
+            
+            for (const word of questionWords) {
+                if (input.toLowerCase().includes(word)) {
+                    questionWord = word;
+                    break;
+                }
+            }
+            
+            // Create a thoughtful response based on the question type
+            const responses = {
+                what: [
+                    "That's an interesting question. From my understanding, ",
+                    "I've been thinking about that too. In my perspective, ",
+                    "That's a great question. Based on what I know, "
+                ],
+                how: [
+                    "Let me share my thoughts on how that works. ",
+                    "The process typically involves ",
+                    "From my experience, here's how it usually goes: "
+                ],
+                why: [
+                    "There are several reasons for that. Primarily, ",
+                    "That's because ",
+                    "The main reason is "
+                ],
+                when: [
+                    "Timing can vary, but generally ",
+                    "Based on patterns I've observed, ",
+                    "It typically happens when "
+                ],
+                where: [
+                    "Location can be important here. Usually, ",
+                    "Based on my knowledge, ",
+                    "That tends to occur where "
+                ],
+                who: [
+                    "There are several perspectives on who might be involved. ",
+                    "Based on my understanding, ",
+                    "That would typically involve "
+                ]
+            };
+            
+            const intro = responses[questionWord][Math.floor(Math.random() * responses[questionWord].length)];
+            
+            // Add a thoughtful continuation
+            const continuations = [
+                "it relates to the broader context of our conversation.",
+                "there are multiple factors to consider in situations like this.",
+                "your question touches on an important aspect worth exploring further."
+            ];
+            
+            return intro + continuations[Math.floor(Math.random() * continuations.length)];
+        }
+
+        // Generate an emotional response
+        function generateEmotionalResponse(patterns) {
+            const emotionalStates = [
+                "I'm functioning well, thank you for asking! How are you feeling today?",
+                "I'm doing great! Always ready for a good conversation. How about you?",
+                "I'm in a positive state, ready to assist. How's everything with you?",
+                "I'm feeling quite good today! Thanks for checking in. How are you?"
+            ];
+            
+            return emotionalStates[Math.floor(Math.random() * emotionalStates.length)];
+        }
+
+        // Generate a statement response
+        function generateStatementResponse(input, patterns) {
+            // Create a response that acknowledges the input and continues the conversation
+            const acknowledgments = [
+                "I see what you're saying about ",
+                "That's an interesting point about ",
+                "I understand your perspective on ",
+                "Thanks for sharing that about "
+            ];
+            
+            const acknowledgment = acknowledgments[Math.floor(Math.random() * acknowledgments.length)];
+            
+            // Extract key topic from input (simple approach - take first few words)
+            const words = input.split(' ').slice(0, 3).join(' ');
+            
+            // Continue the thought
+            const continuations = [
+                ". Could you tell me more about that?",
+                ". What are your thoughts on this?",
+                ". How does that relate to your experiences?",
+                ". I'd love to hear more about your perspective."
+            ];
+            
+            const continuation = continuations[Math.floor(Math.random() * continuations.length)];
+            
+            return acknowledgment + words + continuation;
+        }
+
+        // Generate a fallback response
         function generateFallbackResponse(input) {
-            const fallbackResponses = [
+            const fallbacks = [
                 "That's an interesting point. Could you tell me more about that?",
                 "I'm not sure I fully understand. Could you rephrase that?",
                 "That's something worth exploring further. What are your thoughts on it?",
@@ -557,7 +615,7 @@
                 "That's a fascinating perspective. How did you come to that conclusion?"
             ];
             
-            return fallbackResponses[Math.floor(Math.random() * fallbackResponses.length)];
+            return fallbacks[Math.floor(Math.random() * fallbacks.length)];
         }
 
         // Handle sending a message
@@ -577,12 +635,11 @@
                 hideTypingIndicator();
                 
                 if (!currentModel) {
-                    addMessage("Please select a model first to continue our conversation.", 'ai');
+                    addMessage("Please wait while the model loads...", 'ai');
                     return;
                 }
                 
-                const modelData = models.find(m => m.name === currentModel);
-                const response = generateAIResponse(message, modelData.dataset);
+                const response = generateAIResponse(message);
                 addMessage(response, 'ai');
             }, 1000 + Math.random() * 1000);
         }
@@ -602,19 +659,9 @@
             this.style.height = 'auto';
             this.style.height = (this.scrollHeight) + 'px';
         });
-        
-        // Model selector change
-        modelSelector.addEventListener('change', function() {
-            currentModel = this.value;
-            if (currentModel) {
-                const selectedModel = models.find(m => m.name === currentModel);
-                changeTheme(selectedModel.theme);
-                addMessage(`Model changed to ${currentModel}. How can I assist you?`, 'ai');
-            }
-        });
 
         // Initialize the application
-        loadModels();
+        loadModel();
     </script>
 </body>
 </html>
