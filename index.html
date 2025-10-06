@@ -1,0 +1,282 @@
+<!--
+AI Chatbot - Single-file static webpage (index.html)
+Includes:
+ - Modern stylized chat UI
+ - Fetches models from ./data.json (same directory)
+ - Applies theme per model (CSS variables updated dynamically)
+ - Simple NLP: TF-IDF similarity to find relevant training subset + word-level Markov chain generator trained on model responses
+ - Generates novel responses (not simple lookup), while using nearest inputs to guide tone/context
+
+Usage:
+ 1) Save this file as index.html
+ 2) Create a file `data.json` in the same directory (example content below after the end of this HTML)
+ 3) Serve with a local server or host on GitHub Pages. e.g. `python -m http.server 8000` then open http://localhost:8000
+
+Limitations & notes:
+ - This is a client-side toy "generative" engine for offline use; it's not equivalent to large transformer models.
+ - It generates new text using a Markov chain trained on the dataset responses and guides generation using the most similar inputs.
+ - The quality grows with dataset size and diversity. Dump bigger datasets into model.dataset array in data.json.
+
+Want a React version, WebAudio voices, or to plug a remote API later? Tell me and I'll adapt.
+-->
+
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Dreamscaped AI — Local Browser Chatbot</title>
+  <style>
+    :root{
+      --bg: #0b1020;
+      --card: rgba(255,255,255,0.04);
+      --muted: rgba(255,255,255,0.6);
+      --accent: #9b8cff;
+      --accent-2: #6ee7b7;
+      --glass: rgba(255,255,255,0.03);
+      --text: #e9eef8;
+      --radius: 14px;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+    }
+    *{box-sizing:border-box}
+    body{margin:0; min-height:100vh; background: radial-gradient(ellipse at 10% 20%, rgba(155,140,255,0.12), transparent 10%), radial-gradient(ellipse at 90% 90%, rgba(110,231,183,0.06), transparent 10%), var(--bg); color:var(--text); display:flex; align-items:center; justify-content:center; padding:32px}
+
+    .app{width:100%; max-width:1100px; display:grid; grid-template-columns:360px 1fr; gap:24px}
+    .panel{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); border-radius:var(--radius); padding:18px; box-shadow: 0 6px 30px rgba(2,6,23,0.6);}
+
+    /* Left: model list */
+    .models {display:flex; flex-direction:column; gap:12px}
+    .model {padding:12px; border-radius:12px; background:var(--glass); display:flex; gap:10px; align-items:center; cursor:pointer; transition:transform .14s ease, box-shadow .14s ease}
+    .model:hover{transform:translateY(-3px)}
+    .model.active{box-shadow:0 8px 24px rgba(0,0,0,0.6); outline:2px solid rgba(255,255,255,0.04)}
+    .model .swatch{width:46px; height:46px; border-radius:10px; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-weight:700}
+    .model h4{margin:0;font-size:15px}
+    .model p{margin:0;font-size:12px;color:var(--muted)}
+    .controls{display:flex; gap:8px; align-items:center; margin-top:12px}
+    .btn{padding:8px 12px; border-radius:10px; background:linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)); cursor:pointer; border:1px solid rgba(255,255,255,0.03)}
+
+    /* Right: chat */
+    .chat {display:flex; flex-direction:column; height:72vh}
+    .chatHeader{display:flex; justify-content:space-between; align-items:center; padding-bottom:12px}
+    .conversation{flex:1; overflow:auto; padding:16px; border-radius:12px; background: linear-gradient(180deg, rgba(255,255,255,0.01), rgba(0,0,0,0.02));}
+    .msg{max-width:70%; padding:12px 14px; margin:8px 0; border-radius:12px; line-height:1.35}
+    .msg.user{margin-left:auto; background:linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)); color:var(--text)}
+    .msg.bot{background:linear-gradient(90deg, rgba(155,140,255,0.12), rgba(110,231,183,0.06)); color:#04101b}
+    .composer{display:flex; gap:8px; padding-top:12px;}
+    .input{flex:1; padding:12px; border-radius:12px; background:transparent; border:1px solid rgba(255,255,255,0.06); color:var(--text)}
+
+    .small{font-size:12px;color:var(--muted)}
+    .topBadge{display:flex; gap:10px; align-items:center}
+
+    footer.note{margin-top:12px; font-size:12px; color:var(--muted)}
+
+    @media (max-width:900px){.app{grid-template-columns:1fr;}}
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="panel">
+      <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px">
+        <div style="width:44px;height:44px;border-radius:10px;background:linear-gradient(90deg,var(--accent),var(--accent-2)); display:flex;align-items:center;justify-content:center;font-weight:700">AI</div>
+        <div>
+          <div style="font-weight:700">Dreamscaped AI</div>
+          <div class="small">Local browser chatbot • Themes from models</div>
+        </div>
+      </div>
+
+      <div class="models" id="modelsList">
+        <!-- model items injected here -->
+      </div>
+
+      <div class="controls">
+        <button class="btn" id="reloadBtn">Reload models</button>
+        <button class="btn" id="downloadJsonBtn">Download sample JSON</button>
+      </div>
+
+      <div style="margin-top:14px" class="small">Tip: host on GitHub Pages or use a local server. Fetching from file:// is blocked by browsers.</div>
+    </aside>
+
+    <main class="panel chat">
+      <div class="chatHeader">
+        <div class="topBadge">
+          <div id="modelSwatch" style="width:38px;height:38px;border-radius:8px;background:rgba(255,255,255,0.04);display:flex;align-items:center;justify-content:center">🌙</div>
+          <div>
+            <div id="modelName" style="font-weight:700">Loading...</div>
+            <div id="modelDesc" class="small">—</div>
+          </div>
+        </div>
+        <div class="small" id="status">Models: —</div>
+      </div>
+
+      <div class="conversation" id="conversation" aria-live="polite"></div>
+
+      <div class="composer">
+        <input id="userInput" class="input" placeholder="Say something..." />
+        <button class="btn" id="sendBtn">Send</button>
+      </div>
+
+      <div class="note small" style="padding-top:8px">Generation mode: <span id="genMode">Markov + similarity</span> — not a server model; runs locally.</div>
+    </main>
+  </div>
+
+<script>
+// --- Utilities ---
+const el = (id) => document.getElementById(id);
+
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+
+// Simple tokenizer (word-level)
+function tokenize(s){return s.toLowerCase().replace(/["'\(\)\[\]{}<>]/g,'').replace(/[^a-z0-9!?.,'\s]+/g,' ').split(/\s+/).filter(Boolean)}
+
+// Build TF vectors for an array of texts
+function buildTF(docTokens){ const tf = {}; for(const t of docTokens){ for(const w of t){ tf[w] = (tf[w]||0)+1 } } return tf }
+
+function tfidfVector(textTokens, idf){ const tf = {}; for(const w of textTokens){tf[w]=(tf[w]||0)+1}
+ const vec = {}; for(const w in tf){ vec[w]=tf[w]* (idf[w]||0.001) } return vec }
+
+function cosine(a,b){ let num=0, na=0, nb=0; for(const k in a){ num += (a[k]||0)*(b[k]||0); na += (a[k]||0)*(a[k]||0) } for(const k in b){ nb += (b[k]||0)*(b[k]||0) } if(na===0||nb===0) return 0; return num / (Math.sqrt(na)*Math.sqrt(nb)) }
+
+// Build IDF (inverse doc freq)
+function buildIDF(docsTokens){ const N = docsTokens.length; const df = {}; for(const d of docsTokens){ const seen = new Set(); for(const w of d){ if(!seen.has(w)){ df[w] = (df[w]||0)+1; seen.add(w) } } } const idf = {}; for(const w in df){ idf[w] = Math.log(1 + N/df[w]) } return idf }
+
+// --- Markov chain (word-level) ---
+function buildMarkov(responses, order=2){ const model = {}; for(const r of responses){ const tokens = tokenize(r); if(tokens.length===0) continue; const padded = Array(order).fill('\u0001').concat(tokens).concat(['\u0002']); for(let i=0;i<=padded.length-order-1;i++){ const key = padded.slice(i,i+order).join('\u0001'); const next = padded[i+order]; model[key] = model[key] || []; model[key].push(next); } }
+ return {order,model} }
+
+function generateMarkov(markov, seedTokens=[], maxWords=60){ const {order,model} = markov; let context = seedTokens.slice(-order); while(context.length < order) context.unshift('\u0001'); const out = [];
+ for(let i=0;i<maxWords;i++){ const key = context.join('\u0001'); const options = model[key] || model[Array(order).fill('\u0001').join('\u0001')]; if(!options) break; const next = options[Math.floor(Math.random()*options.length)]; if(next === '\u0002') break; out.push(next); context = context.slice(1); context.push(next); }
+ return out.join(' ')
+}
+
+// Basic cleanup: capitalize first, ensure punctuation.
+function tidy(s){ s = s.trim(); if(s.length===0) return s; s = s.replace(/\s+([?.!,])/g,'$1'); if(!/[.?!]$/.test(s)) s = s + '.'; s = s[0].toUpperCase()+s.slice(1); return s }
+
+// --- App state ---
+let MODELS = []; let currentModel = null; let modelVectors = []; let idf = {}; let markov = null;
+
+// DOM
+const modelsList = el('modelsList'), conversation = el('conversation'), modelName = el('modelName'), modelDesc = el('modelDesc'), modelSwatch = el('modelSwatch'), status = el('status'), genMode = el('genMode');
+
+function addMessage(text, who='bot'){ const div = document.createElement('div'); div.className = 'msg '+(who==='user'?'user':'bot'); div.textContent = text; conversation.appendChild(div); conversation.scrollTop = conversation.scrollHeight; }
+
+// Load models
+async function loadModels(){ try{
+   const res = await fetch('data.json'); if(!res.ok) throw new Error('Failed to fetch data.json: '+res.status);
+   const data = await res.json(); MODELS = data.models || []; renderModels(); status.textContent = `Models: ${MODELS.length}`; if(MODELS.length>0) loadModel(0);
+ }catch(e){ console.error(e); status.textContent = 'Error loading data.json'; modelName.textContent='(no models)'; modelDesc.textContent = e.message; }
+}
+
+function renderModels(){ modelsList.innerHTML=''; MODELS.forEach((m,i)=>{ const item = document.createElement('div'); item.className = 'model'; item.onclick = ()=> loadModel(i); if(i===0) item.classList.add('active'); const sw = document.createElement('div'); sw.className='swatch'; sw.style.background = m.theme?.swatch || 'linear-gradient(90deg,var(--accent),var(--accent-2))'; sw.textContent = (m.icon||m.name||'M')[0]; const txt = document.createElement('div'); const h = document.createElement('h4'); h.textContent = m.name; const p = document.createElement('p'); p.textContent = m.desc||m.theme?.subtitle||'--'; txt.appendChild(h); txt.appendChild(p); item.appendChild(sw); item.appendChild(txt); modelsList.appendChild(item); }); }
+
+function applyTheme(theme){ if(!theme) return; const root = document.documentElement; if(theme['--bg']) root.style.setProperty('--bg', theme['--bg']); if(theme['--card']) root.style.setProperty('--card', theme['--card']); if(theme['--accent']) root.style.setProperty('--accent', theme['--accent']); if(theme['--accent-2']) root.style.setProperty('--accent-2', theme['--accent-2']); }
+
+function loadModel(index){ currentModel = MODELS[index]; // update UI
+ document.querySelectorAll('.model').forEach((el, i)=> el.classList.toggle('active', i===index)); applyTheme(currentModel.theme || {}); modelName.textContent = currentModel.name || 'Unnamed'; modelDesc.textContent = currentModel.desc || currentModel.theme?.subtitle || ''; modelSwatch.style.background = currentModel.theme?.swatch || 'linear-gradient(90deg,var(--accent),var(--accent-2))';
+ // prepare NLP structures
+ const dataset = (currentModel.dataset || []).map(d=>({input: d.input||'', response: d.response||''})); const inputs = dataset.map(d=>d.input); const responses = dataset.map(d=>d.response);
+ const docsTokens = inputs.map(s=>tokenize(s)); idf = buildIDF(docsTokens); modelVectors = docsTokens.map(t=>tfidfVector(t, idf)); markov = buildMarkov(responses, 2);
+ conversation.innerHTML = '';
+ addMessage(`Loaded model: ${currentModel.name}. Theme applied.`, 'bot'); }
+
+// User query handling
+async function handleInput(text){ if(!text.trim()) return; addMessage(text,'user'); el('userInput').value='';
+ // vectorize
+ const qTokens = tokenize(text); const qVec = tfidfVector(qTokens, idf);
+ // compute similarities
+ const sims = modelVectors.map(v=>cosine(qVec, v)); const bestIdx = sims.indexOf(Math.max(...sims)); const topN = sims.map((s,i)=>({s,i})).sort((a,b)=>b.s-a.s).slice(0,4);
+ // pick responses from top matches as training seeds
+ const dataset = currentModel.dataset || [];
+ let seed = '';
+ if(bestIdx>=0 && dataset[bestIdx] && dataset[bestIdx].response){ const resp = dataset[bestIdx].response; // use first couple words as seed
+   const words = tokenize(resp); seed = words.slice(0,3); }
+ // generate with markov
+ let generated = '';
+ try{ generated = generateMarkov(markov, seed, 40); }catch(e){ console.error(e); generated = dataset[bestIdx]?.response || 'Hmm...'; }
+ generated = tidy(generated);
+ addMessage(generated,'bot'); }
+
+// Buttons
+el('sendBtn').addEventListener('click', ()=> handleInput(el('userInput').value));
+el('userInput').addEventListener('keydown',(e)=>{ if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); handleInput(el('userInput').value); } });
+
+el('reloadBtn').addEventListener('click', loadModels);
+
+// Download sample JSON
+el('downloadJsonBtn').addEventListener('click', ()=>{
+  const sample = sampleJSON(); const blob = new Blob([JSON.stringify(sample, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'data.json'; a.click(); URL.revokeObjectURL(url);
+});
+
+function sampleJSON(){ return {
+  models: [
+    {
+      name: 'Dreamscaper',
+      desc: 'Mythical / dreamscapey conversationalist',
+      icon: 'D',
+      theme: {
+        '--bg':'#0b1020',
+        '--accent':'#9b8cff',
+        '--accent-2':'#6ee7b7',
+        'swatch':'linear-gradient(90deg,#9b8cff,#6ee7b7)',
+        'subtitle':'soft as starlight'
+      },
+      dataset: [
+        {"input":"hello there","response":"hey! how's it going? what's on your mind today?"},
+        {"input":"hi how are you","response":"i'm doing well, thanks for asking! how about you? what's new?"},
+        {"input":"i feel sad","response":"i'm sorry you're feeling sad. would you like to tell me what happened? i'm listening."},
+        {"input":"tell me a story","response":"a hush of silver rain fell as the moon opened a doorway; a wanderer stepped through and forgot time itself."}
+      ]
+    },
+    {
+      name: 'Practicalist',
+      desc: 'Short, clear, pragmatic replies',
+      icon: 'P',
+      theme: {
+        '--bg':'#071022',
+        '--accent':'#00c2ff',
+        '--accent-2':'#00ffa3',
+        'swatch':'linear-gradient(90deg,#00c2ff,#00ffa3)',
+        'subtitle':'direct & efficient'
+      },
+      dataset: [
+        {"input":"hello there","response":"hello. how can i assist you?"},
+        {"input":"what is your name","response":"i am your local assistant. tell me what you need."},
+        {"input":"how do i fix this","response":"explain the problem step by step and i will help you troubleshoot."}
+      ]
+    }
+  ]
+}; }
+
+// init
+loadModels();
+
+</script>
+
+</body>
+</html>
+
+
+<!-- SAMPLE data.json (place this as a separate file named data.json in the same folder) -->
+<!--
+{
+  "models": [
+    {
+      "name": "Dreamscaper",
+      "desc": "Mythical / dreamscapey conversationalist",
+      "icon": "D",
+      "theme": {
+        "--bg":"#0b1020",
+        "--accent":"#9b8cff",
+        "--accent-2":"#6ee7b7",
+        "swatch":"linear-gradient(90deg,#9b8cff,#6ee7b7)",
+        "subtitle":"soft as starlight"
+      },
+      "dataset": [
+        {"input":"hello there","response":"hey! how's it going? what's on your mind today?"},
+        {"input":"i feel sad","response":"i'm sorry you're feeling sad. would you like to tell me what happened? i'm listening."},
+        {"input":"tell me a story","response":"a hush of silver rain fell as the moon opened a doorway; a wanderer stepped through and forgot time itself."}
+      ]
+    }
+  ]
+}
+-->
