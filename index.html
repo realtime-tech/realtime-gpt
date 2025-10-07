@@ -411,7 +411,8 @@
 
             console.log("Using opening:", randomOpening, "Theme:", theme);
 
-            return craftNewResponse(input, randomOpening, theme);
+            // PASS THE EXAMPLES PARAMETER!
+            return craftNewResponse(input, randomOpening, theme, examples);
         }
 
         // Load models from data.json
