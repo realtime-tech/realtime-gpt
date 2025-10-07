@@ -445,57 +445,57 @@
 
 
         function craftNewResponse(input, opening, theme, examples) {
-    // Learn everything from the examples - no hardcoded mythical words
-    const allResponses = examples.map(e => e.response);
-    
-    // Extract the actual linguistic style from the dataset
-    const learnedStyle = {
-        // Sentence length patterns
-        avgSentenceLength: allResponses.reduce((sum, r) => sum + r.split(' ').length, 0) / allResponses.length,
-        
-        // Common opening phrases from THIS dataset
-        commonOpenings: allResponses.map(r => r.split(/[.!?]+/)[0].split(' ').slice(0, 3).join(' ')),
-        
-        // Common ending patterns  
-        commonEndings: allResponses.map(r => {
-            const sentences = r.split(/[.!?]+/).filter(s => s.trim());
-            return sentences[sentences.length - 1].split(' ').slice(-3).join(' ');
-        }),
-        
-        // Question frequency in THIS dataset
-        questionRate: allResponses.filter(r => r.includes('?')).length / allResponses.length,
-        
-        // Vocabulary unique to THIS dataset
-        uniqueVocabulary: [...new Set(allResponses.flatMap(r => r.split(' ')))].filter(w => w.length > 3)
-    };
-    
-    // Generate response using ONLY learned patterns
-    let response = "";
-    
-    // Start with dataset's style
-    const opening = learnedStyle.commonOpenings[Math.floor(Math.random() * learnedStyle.commonOpenings.length)];
-    response += opening;
-    
-    // Continue with dataset's sentence length pattern
-    const targetLength = learnedStyle.avgSentenceLength * (0.8 + Math.random() * 0.4);
-    const currentWords = response.split(' ').length;
-    
-    // Add content using dataset's vocabulary
-    while (response.split(' ').length < targetLength) {
-        const nextWord = learnedStyle.uniqueVocabulary[Math.floor(Math.random() * learnedStyle.uniqueVocabulary.length)];
-        response += " " + nextWord;
-    }
-    
-    // End with dataset's pattern
-    if (Math.random() < learnedStyle.questionRate) {
-        response += "?";
-    } else {
-        const ending = learnedStyle.commonEndings[Math.floor(Math.random() * learnedStyle.commonEndings.length)];
-        response += ". " + ending;
-    }
-    
-    return response;
-}
+            // Learn everything from the examples - no hardcoded mythical words
+            const allResponses = examples.map(e => e.response);
+
+            // Extract the actual linguistic style from the dataset
+            const learnedStyle = {
+                // Sentence length patterns
+                avgSentenceLength: allResponses.reduce((sum, r) => sum + r.split(' ').length, 0) / allResponses.length,
+
+                // Common opening phrases from THIS dataset
+                commonOpenings: allResponses.map(r => r.split(/[.!?]+/)[0].split(' ').slice(0, 3).join(' ')),
+
+                // Common ending patterns  
+                commonEndings: allResponses.map(r => {
+                    const sentences = r.split(/[.!?]+/).filter(s => s.trim());
+                    return sentences[sentences.length - 1].split(' ').slice(-3).join(' ');
+                }),
+
+                // Question frequency in THIS dataset
+                questionRate: allResponses.filter(r => r.includes('?')).length / allResponses.length,
+
+                // Vocabulary unique to THIS dataset
+                uniqueVocabulary: [...new Set(allResponses.flatMap(r => r.split(' ')))].filter(w => w.length > 3)
+            };
+
+            // Generate response using ONLY learned patterns
+            let response = "";
+
+            // Start with dataset's style
+            const opening = learnedStyle.commonOpenings[Math.floor(Math.random() * learnedStyle.commonOpenings.length)];
+            response += opening;
+
+            // Continue with dataset's sentence length pattern
+            const targetLength = learnedStyle.avgSentenceLength * (0.8 + Math.random() * 0.4);
+            const currentWords = response.split(' ').length;
+
+            // Add content using dataset's vocabulary
+            while (response.split(' ').length < targetLength) {
+                const nextWord = learnedStyle.uniqueVocabulary[Math.floor(Math.random() * learnedStyle.uniqueVocabulary.length)];
+                response += " " + nextWord;
+            }
+
+            // End with dataset's pattern
+            if (Math.random() < learnedStyle.questionRate) {
+                response += "?";
+            } else {
+                const ending = learnedStyle.commonEndings[Math.floor(Math.random() * learnedStyle.commonEndings.length)];
+                response += ". " + ending;
+            }
+
+            return response;
+        }
 
         // Load the selected model
         function loadSelectedModel() {
