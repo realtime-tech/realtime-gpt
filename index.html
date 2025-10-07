@@ -446,18 +446,23 @@
 
         function craftNewResponse(input, opening, theme, examples) {
             try {
-                console.log("craftNewResponse called with", examples.length, "examples");
+                console.log("craftNewResponse called with examples:", examples);
+                console.log("Examples length:", examples?.length);
 
                 if (!examples || examples.length === 0) {
                     return "The patterns are unclear. What shall we explore?";
                 }
 
                 const allResponses = examples.map(e => e.response);
+                console.log("All responses:", allResponses);
 
                 const learnedStyle = {
                     commonOpenings: allResponses.map(r => {
+                        console.log("Processing response:", r);
                         const firstSentence = r.split(/[.!?]+/)[0];
-                        return firstSentence.split(' ').slice(0, 3).join(' ');
+                        const opening = firstSentence.split(' ').slice(0, 3).join(' ');
+                        console.log("Extracted opening:", opening);
+                        return opening;
                     }).filter(opening => opening && opening.length > 0),
 
                     commonEndings: allResponses.map(r => {
@@ -466,15 +471,28 @@
                         return lastSentence.split(' ').slice(-3).join(' ');
                     }).filter(ending => ending && ending.length > 0),
 
-                    uniqueVocabulary: [...new Set(allResponses.flatMap(r => r.split(' ')))].filter(w => w && w.length > 2)
+                    uniqueVocabulary: [...new Set(allResponses.flatMap(r => {
+                        console.log("Splitting response into words:", r);
+                        return r.split(' ').filter(w => w && w.length > 2);
+                    }))]
                 };
 
-                // Safety checks
-                if (learnedStyle.commonOpenings.length === 0) learnedStyle.commonOpenings = ["I sense"];
-                if (learnedStyle.commonEndings.length === 0) learnedStyle.commonEndings = ["shall we continue?"];
-                if (learnedStyle.uniqueVocabulary.length === 0) learnedStyle.uniqueVocabulary = ["conversation", "explore", "wonder"];
+                console.log("Learned style:", learnedStyle);
 
-                // RENAME THIS VARIABLE - it was conflicting with the parameter
+                // Safety checks with better debugging
+                if (learnedStyle.commonOpenings.length === 0) {
+                    console.log("No common openings found, using default");
+                    learnedStyle.commonOpenings = ["I sense"];
+                }
+                if (learnedStyle.commonEndings.length === 0) {
+                    console.log("No common endings found, using default");
+                    learnedStyle.commonEndings = ["shall we continue?"];
+                }
+                if (learnedStyle.uniqueVocabulary.length === 0) {
+                    console.log("No vocabulary found, using default");
+                    learnedStyle.uniqueVocabulary = ["conversation", "explore", "wonder"];
+                }
+
                 const chosenOpening = learnedStyle.commonOpenings[Math.floor(Math.random() * learnedStyle.commonOpenings.length)];
                 let response = chosenOpening;
 
@@ -489,10 +507,12 @@
                 const chosenEnding = learnedStyle.commonEndings[Math.floor(Math.random() * learnedStyle.commonEndings.length)];
                 response += ". " + chosenEnding;
 
+                console.log("Final generated response:", response);
                 return response;
 
             } catch (error) {
                 console.error("Error in craftNewResponse:", error);
+                console.error("Error stack:", error.stack);
                 return "The dreamscape shifts unexpectedly. Shall we begin anew?";
             }
         }
