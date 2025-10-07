@@ -386,6 +386,33 @@
         let currentModel = null;
         let models = [];
         let dataset = [];
+        function generateFromPatterns(input, examples) {
+            console.log("Generating from patterns with", examples.length, "examples");
+
+            // Extract response patterns from similar examples
+            const responses = examples.map(e => e.response);
+
+            // Analyze openings
+            const commonOpenings = responses.map(r => {
+                const firstSentence = r.split(/[.!?]+/)[0];
+                return firstSentence.split(' ').slice(0, 4).join(' ');
+            });
+
+            // Analyze themes
+            const commonThemes = responses.map(r =>
+                r.includes('magic') || r.includes('dream') || r.includes('realm') ? 'mythical' :
+                    r.includes('feel') || r.includes('emotion') || r.includes('soul') ? 'emotional' :
+                        'conversational'
+            );
+
+            // Choose patterns
+            const randomOpening = commonOpenings[Math.floor(Math.random() * commonOpenings.length)];
+            const theme = commonThemes[Math.floor(Math.random() * commonThemes.length)];
+
+            console.log("Using opening:", randomOpening, "Theme:", theme);
+
+            return craftNewResponse(input, randomOpening, theme);
+        }
 
         // Load models from data.json
         async function loadModels() {
@@ -416,33 +443,6 @@
             }
         }
 
-        function generateFromPatterns(input, examples) {
-            console.log("Generating from patterns with", examples.length, "examples");
-
-            // Extract response patterns from similar examples
-            const responses = examples.map(e => e.response);
-
-            // Analyze openings
-            const commonOpenings = responses.map(r => {
-                const firstSentence = r.split(/[.!?]+/)[0];
-                return firstSentence.split(' ').slice(0, 4).join(' ');
-            });
-
-            // Analyze themes
-            const commonThemes = responses.map(r =>
-                r.includes('magic') || r.includes('dream') || r.includes('realm') ? 'mythical' :
-                    r.includes('feel') || r.includes('emotion') || r.includes('soul') ? 'emotional' :
-                        'conversational'
-            );
-
-            // Choose patterns
-            const randomOpening = commonOpenings[Math.floor(Math.random() * commonOpenings.length)];
-            const theme = commonThemes[Math.floor(Math.random() * commonThemes.length)];
-
-            console.log("Using opening:", randomOpening, "Theme:", theme);
-
-            return craftNewResponse(input, randomOpening, theme);
-        }
 
         function craftNewResponse(input, opening, theme) {
             console.log("Crafting response with opening:", opening);
