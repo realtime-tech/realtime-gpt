@@ -421,36 +421,49 @@
             return intersection.size / union.size;
         }
 
-        // Generate AI response based on input and dataset
         function generateAIResponse(input) {
-            // If no dataset is loaded, return a fallback response
-            if (dataset.length === 0) {
-                return "I'm still learning. Could you tell me more about that?";
-            }
-            
-            // Find the most similar examples in the dataset
-            const similarities = dataset.map(example => ({
-                example,
-                similarity: calculateSimilarity(input, example.input)
-            }));
-            
-            // Sort by similarity (highest first)
-            similarities.sort((a, b) => b.similarity - a.similarity);
-            
-            // Take the top 3 most similar examples
-            const topExamples = similarities.slice(0, 3).filter(item => item.similarity > 0.1);
-            
-            // If no similar examples found, return a generic response
-            if (topExamples.length === 0) {
-                return generateFallbackResponse(input);
-            }
-            
-            // Analyze the response patterns from the examples
-            const responsePatterns = analyzeResponsePatterns(topExamples.map(item => item.example.response));
-            
-            // Generate a new response based on the patterns
-            return generateResponseFromPatterns(input, responsePatterns);
-        }
+    console.log("=== NEW INPUT:", input);
+    const inputLower = input.toLowerCase().trim();
+    
+    // 1. Exact match
+    const exactMatch = dataset.find(example => 
+        example.input.toLowerCase().trim() === inputLower
+    );
+    if (exactMatch) {
+        console.log("EXACT MATCH USED");
+        return exactMatch.response;
+    }
+    
+    // 2. Similarity search
+    const similarities = dataset.map(example => ({
+        example,
+        similarity: calculateSimilarity(inputLower, example.input.toLowerCase())
+    }));
+    
+    similarities.sort((a, b) => b.similarity - a.similarity);
+    
+    // Use the top similarity score but require at least some relevance
+    const topSimilarity = similarities[0]?.similarity || 0;
+    const topExamples = similarities.slice(0, 5).filter(item => 
+        item.similarity > Math.max(0.08, topSimilarity * 0.8)
+    );
+    
+    console.log("Top examples found:", topExamples.length);
+    console.log("Best similarity:", topSimilarity);
+    
+    // 3. Pattern generation
+    if (topExamples.length > 0) {
+        console.log("ATTEMPTING PATTERN GENERATION");
+        const generated = generateFromPatterns(input, topExamples.map(t => t.example));
+        console.log("Generated response:", generated);
+        return generated;
+    }
+    
+    // 4. Fallback
+    console.log("FALLING BACK TO GENERIC");
+    const randomExample = dataset[Math.floor(Math.random() * dataset.length)];
+    return adaptResponse(randomExample.response, input);
+}
 
         // Analyze response patterns from example responses
         function analyzeResponsePatterns(responses) {
