@@ -445,58 +445,57 @@
 
 
         function craftNewResponse(input, opening, theme, examples) {
-            // Learn everything from the examples - no hardcoded mythical words
-            const allResponses = examples.map(e => e.response);
+            try {
+                console.log("craftNewResponse called with", examples.length, "examples");
 
-            // Extract the actual linguistic style from the dataset
-            const learnedStyle = {
-                // Sentence length patterns
-                avgSentenceLength: allResponses.reduce((sum, r) => sum + r.split(' ').length, 0) / allResponses.length,
+                if (!examples || examples.length === 0) {
+                    return "The patterns are unclear. What shall we explore?";
+                }
 
-                // Common opening phrases from THIS dataset
-                commonOpenings: allResponses.map(r => r.split(/[.!?]+/)[0].split(' ').slice(0, 3).join(' ')),
+                const allResponses = examples.map(e => e.response);
 
-                // Common ending patterns  
-                commonEndings: allResponses.map(r => {
-                    const sentences = r.split(/[.!?]+/).filter(s => s.trim());
-                    return sentences[sentences.length - 1].split(' ').slice(-3).join(' ');
-                }),
+                const learnedStyle = {
+                    commonOpenings: allResponses.map(r => {
+                        const firstSentence = r.split(/[.!?]+/)[0];
+                        return firstSentence.split(' ').slice(0, 3).join(' ');
+                    }).filter(opening => opening && opening.length > 0),
 
-                // Question frequency in THIS dataset
-                questionRate: allResponses.filter(r => r.includes('?')).length / allResponses.length,
+                    commonEndings: allResponses.map(r => {
+                        const sentences = r.split(/[.!?]+/).filter(s => s.trim());
+                        const lastSentence = sentences[sentences.length - 1] || '';
+                        return lastSentence.split(' ').slice(-3).join(' ');
+                    }).filter(ending => ending && ending.length > 0),
 
-                // Vocabulary unique to THIS dataset
-                uniqueVocabulary: [...new Set(allResponses.flatMap(r => r.split(' ')))].filter(w => w.length > 3)
-            };
+                    uniqueVocabulary: [...new Set(allResponses.flatMap(r => r.split(' ')))].filter(w => w && w.length > 2)
+                };
 
-            // Generate response using ONLY learned patterns
-            let response = "";
+                // Safety checks
+                if (learnedStyle.commonOpenings.length === 0) learnedStyle.commonOpenings = ["I sense"];
+                if (learnedStyle.commonEndings.length === 0) learnedStyle.commonEndings = ["shall we continue?"];
+                if (learnedStyle.uniqueVocabulary.length === 0) learnedStyle.uniqueVocabulary = ["conversation", "explore", "wonder"];
 
-            // Start with dataset's style
-            const opening = learnedStyle.commonOpenings[Math.floor(Math.random() * learnedStyle.commonOpenings.length)];
-            response += opening;
+                // RENAME THIS VARIABLE - it was conflicting with the parameter
+                const chosenOpening = learnedStyle.commonOpenings[Math.floor(Math.random() * learnedStyle.commonOpenings.length)];
+                let response = chosenOpening;
 
-            // Continue with dataset's sentence length pattern
-            const targetLength = learnedStyle.avgSentenceLength * (0.8 + Math.random() * 0.4);
-            const currentWords = response.split(' ').length;
+                // Add 2-4 random words from the dataset's vocabulary
+                const wordCount = 2 + Math.floor(Math.random() * 3);
+                for (let i = 0; i < wordCount; i++) {
+                    const randomWord = learnedStyle.uniqueVocabulary[Math.floor(Math.random() * learnedStyle.uniqueVocabulary.length)];
+                    response += " " + randomWord;
+                }
 
-            // Add content using dataset's vocabulary
-            while (response.split(' ').length < targetLength) {
-                const nextWord = learnedStyle.uniqueVocabulary[Math.floor(Math.random() * learnedStyle.uniqueVocabulary.length)];
-                response += " " + nextWord;
+                // Add ending
+                const chosenEnding = learnedStyle.commonEndings[Math.floor(Math.random() * learnedStyle.commonEndings.length)];
+                response += ". " + chosenEnding;
+
+                return response;
+
+            } catch (error) {
+                console.error("Error in craftNewResponse:", error);
+                return "The dreamscape shifts unexpectedly. Shall we begin anew?";
             }
-
-            // End with dataset's pattern
-            if (Math.random() < learnedStyle.questionRate) {
-                response += "?";
-            } else {
-                const ending = learnedStyle.commonEndings[Math.floor(Math.random() * learnedStyle.commonEndings.length)];
-                response += ". " + ending;
-            }
-
-            return response;
         }
-
         // Load the selected model
         function loadSelectedModel() {
             const selectedModelName = modelDropdown.value;
