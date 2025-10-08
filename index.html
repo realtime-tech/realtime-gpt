@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mythical Dreamscape AI</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/winkjs/2.1.0/wink.min.js"></script>
     <style>
         :root {
             --primary-color: #8a2be2;
@@ -445,50 +446,72 @@
         }
 
 
+        // Global winkNLP instance
+        let winkNLP = null;
+        let model = null;
+
+        async function initializeWinkNLP() {
+            if (typeof window.wink !== 'undefined') {
+                winkNLP = window.wink.nlp;
+                model = await winkNLP();
+                console.log("WinkJS NLP loaded successfully");
+            }
+        }
+
         function craftNewResponse(input, opening, theme, examples) {
             try {
+                if (!winkNLP || !model) {
+                    console.log("WinkJS not loaded, using fallback");
+                    return simpleAdaptation(input, examples);
+                }
+
                 const mostSimilar = examples[0];
                 if (!mostSimilar) return "Let's explore this further.";
 
                 const originalResponse = mostSimilar.response;
-                const inputWords = input.toLowerCase().split(/\s+/).filter(w => w.length > 2);
 
-                // Smarter replacement: only replace CONTENT words, not structure words
+                // Use WinkJS to understand grammar
+                const doc = model.readDoc(originalResponse);
+                const inputDoc = model.readDoc(input);
+
+                // Get nouns and adjectives from input
+                const inputNouns = inputDoc.tokens().filter(t => t.out(model.its.pos) === 'NOUN').out();
+                const inputAdjectives = inputDoc.tokens().filter(t => t.out(model.its.pos) === 'ADJ').out();
+
                 let adaptedResponse = originalResponse;
-                const responseWords = adaptedResponse.split(/\s+/);
 
-                // Identify content words (nouns, adjectives) vs structure words
-                const contentWordPositions = [];
-                responseWords.forEach((word, index) => {
-                    const lowerWord = word.toLowerCase();
-                    // Skip small words, verbs, pronouns - only replace meaningful content words
-                    if (word.length > 4 &&
-                        !['this', 'that', 'what', 'how', 'when', 'where', 'have', 'has', 'are', 'were', 'been'].includes(lowerWord) &&
-                        !word.endsWith('ing') && !word.endsWith('ed')) {
-                        contentWordPositions.push(index);
+                // Replace nouns intelligently
+                if (inputNouns.length > 0) {
+                    const doc = model.readDoc(adaptedResponse);
+                    const nouns = doc.tokens().filter(t => t.out(model.its.pos) === 'NOUN').out();
+
+                    if (nouns.length > 0) {
+                        // Replace first noun with first input noun
+                        const firstNoun = nouns[0];
+                        adaptedResponse = adaptedResponse.replace(firstNoun, inputNouns[0]);
                     }
-                });
-
-                // Replace 1-2 content words with input words
-                if (contentWordPositions.length > 0 && inputWords.length > 0) {
-                    const positionsToReplace = contentWordPositions
-                        .sort(() => 0.5 - Math.random())
-                        .slice(0, Math.min(2, inputWords.length));
-
-                    positionsToReplace.forEach((position, i) => {
-                        responseWords[position] = inputWords[i % inputWords.length];
-                    });
-
-                    adaptedResponse = responseWords.join(' ');
                 }
 
-                console.log("Smart adaptation:", originalResponse, "→", adaptedResponse);
+                console.log("WinkJS adaptation:", originalResponse, "→", adaptedResponse);
                 return adaptedResponse;
 
             } catch (error) {
-                console.error("Error:", error);
-                return examples[0]?.response || "Let's continue our conversation.";
+                console.error("Error in WinkJS generation:", error);
+                return simpleAdaptation(input, examples);
             }
+        }
+
+        function simpleAdaptation(input, examples) {
+            const mostSimilar = examples[0];
+            if (!mostSimilar) return "Let's explore this further.";
+
+            return mostSimilar.response; // Fallback to exact match
+        }
+
+        // Initialize when page loads
+        async function loadModels() {
+            await initializeWinkNLP();
+            // ... your existing model loading code
         }
         // Helper function to classify words by their role
         function classifyWordType(word, position, totalLength) {
