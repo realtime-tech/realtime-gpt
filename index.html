@@ -416,102 +416,77 @@
             return craftNewResponse(input, randomOpening, theme, examples);
         }
 
-        // Load models from data.json
-        async function loadModels() {
+        // Simple grammar-aware adaptation using free API
+        async function craftNewResponse(input, opening, theme, examples) {
             try {
-                const response = await fetch('data.json');
-                const data = await response.json();
-                models = data.models;
-
-                // Populate model dropdown
-                modelDropdown.innerHTML = '';
-                models.forEach(model => {
-                    const option = document.createElement('option');
-                    option.value = model.name;
-                    option.textContent = model.name;
-                    modelDropdown.appendChild(option);
-                });
-
-                // Auto-select first model
-                if (models.length > 0) {
-                    modelDropdown.value = models[0].name;
-                    loadSelectedModel();
-                }
-
-            } catch (error) {
-                console.error('Error loading models:', error);
-                addMessage('Error loading models. Please check if data.json exists.', 'ai');
-                modelDropdown.innerHTML = '<option value="">Error loading models</option>';
-            }
-        }
-
-
-        // Global winkNLP instance
-        let winkNLP = null;
-        let model = null;
-
-        async function initializeWinkNLP() {
-            if (typeof window.wink !== 'undefined') {
-                winkNLP = window.wink.nlp;
-                model = await winkNLP();
-                console.log("WinkJS NLP loaded successfully");
-            }
-        }
-
-        function craftNewResponse(input, opening, theme, examples) {
-            try {
-                if (!winkNLP || !model) {
-                    console.log("WinkJS not loaded, using fallback");
-                    return simpleAdaptation(input, examples);
-                }
-
                 const mostSimilar = examples[0];
                 if (!mostSimilar) return "Let's explore this further.";
 
                 const originalResponse = mostSimilar.response;
+                const inputWords = input.toLowerCase().split(/\s+/).filter(w => w.length > 3);
 
-                // Use WinkJS to understand grammar
-                const doc = model.readDoc(originalResponse);
-                const inputDoc = model.readDoc(input);
-
-                // Get nouns and adjectives from input
-                const inputNouns = inputDoc.tokens().filter(t => t.out(model.its.pos) === 'NOUN').out();
-                const inputAdjectives = inputDoc.tokens().filter(t => t.out(model.its.pos) === 'ADJ').out();
-
-                let adaptedResponse = originalResponse;
-
-                // Replace nouns intelligently
-                if (inputNouns.length > 0) {
-                    const doc = model.readDoc(adaptedResponse);
-                    const nouns = doc.tokens().filter(t => t.out(model.its.pos) === 'NOUN').out();
-
-                    if (nouns.length > 0) {
-                        // Replace first noun with first input noun
-                        const firstNoun = nouns[0];
-                        adaptedResponse = adaptedResponse.replace(firstNoun, inputNouns[0]);
-                    }
+                if (inputWords.length === 0) {
+                    return originalResponse;
                 }
 
-                console.log("WinkJS adaptation:", originalResponse, "→", adaptedResponse);
+                // Simple but smart adaptation without external libraries
+                const adaptedResponse = await smartWordReplacement(originalResponse, inputWords);
+
+                console.log("Smart adaptation:", originalResponse, "→", adaptedResponse);
                 return adaptedResponse;
 
             } catch (error) {
-                console.error("Error in WinkJS generation:", error);
-                return simpleAdaptation(input, examples);
+                console.error("Error in smart generation:", error);
+                return examples[0]?.response || "Let's continue our conversation.";
             }
         }
 
-        function simpleAdaptation(input, examples) {
-            const mostSimilar = examples[0];
-            if (!mostSimilar) return "Let's explore this further.";
+        async function smartWordReplacement(original, inputWords) {
+            const words = original.split(/\s+/);
 
-            return mostSimilar.response; // Fallback to exact match
+            // Identify likely content words (long words that aren't common structure words)
+            const commonWords = new Set(['the', 'and', 'but', 'for', 'with', 'this', 'that', 'what', 'how', 'when', 'where', 'your', 'my', 'our', 'have', 'has', 'are', 'were']);
+
+            const contentWordPositions = [];
+            words.forEach((word, index) => {
+                const cleanWord = word.toLowerCase().replace(/[^a-z]/g, '');
+                if (cleanWord.length > 4 && !commonWords.has(cleanWord) && !word.endsWith('ing') && !word.endsWith('ed')) {
+                    contentWordPositions.push(index);
+                }
+            });
+
+            // Replace 1-2 content words with input words
+            if (contentWordPositions.length > 0) {
+                const newWords = [...words];
+                const replacements = Math.min(2, contentWordPositions.length, inputWords.length);
+
+                for (let i = 0; i < replacements; i++) {
+                    const pos = contentWordPositions[i];
+                    newWords[pos] = inputWords[i];
+                }
+
+                return newWords.join(' ');
+            }
+
+            return original;
         }
 
-        // Initialize when page loads
+        // Remove any WinkJS initialization and just use this
         async function loadModels() {
-            await initializeWinkNLP();
-            // ... your existing model loading code
+            // Your existing model loading code - NO NLP INIT NEEDED
+            try {
+                const response = await fetch('data.json');
+                const data = await response.json();
+
+                // Use the first model
+                currentModel = data.models[0];
+                dataset = currentModel.dataset;
+
+                addMessage(`Model "${currentModel.name}" loaded successfully. How can I assist you today?`, 'ai');
+            } catch (error) {
+                console.error('Error loading model:', error);
+                addMessage('Error loading model. Please check if data.json exists.', 'ai');
+            }
         }
         // Helper function to classify words by their role
         function classifyWordType(word, position, totalLength) {
