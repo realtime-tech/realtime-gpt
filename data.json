@@ -1,7 +1,7 @@
 {
   "models": [
     {
-      "name": "Mythical Dreamer v0.08",
+      "name": "Mythical Dreamer v0.09",
       "dataset": [
         {
           "input": "hello there",
