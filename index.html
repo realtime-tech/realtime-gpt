@@ -447,29 +447,42 @@
 
         function craftNewResponse(input, opening, theme, examples) {
             try {
-                // Find the MOST similar example and adapt it slightly
-                const mostSimilar = examples[0]; // Already sorted by similarity
-
+                const mostSimilar = examples[0];
                 if (!mostSimilar) return "Let's explore this further.";
 
-                // Simple adaptation: replace key words while keeping structure
                 const originalResponse = mostSimilar.response;
                 const inputWords = input.toLowerCase().split(/\s+/).filter(w => w.length > 2);
 
-                // Replace 1-2 words in the response with words from input
+                // Smarter replacement: only replace CONTENT words, not structure words
                 let adaptedResponse = originalResponse;
-                const wordsToReplace = Math.min(2, inputWords.length);
+                const responseWords = adaptedResponse.split(/\s+/);
 
-                for (let i = 0; i < wordsToReplace; i++) {
-                    const randomPosition = Math.floor(Math.random() * 3) + 1; // Don't replace first word
-                    const responseWords = adaptedResponse.split(/\s+/);
-                    if (randomPosition < responseWords.length) {
-                        responseWords[randomPosition] = inputWords[i];
-                        adaptedResponse = responseWords.join(' ');
+                // Identify content words (nouns, adjectives) vs structure words
+                const contentWordPositions = [];
+                responseWords.forEach((word, index) => {
+                    const lowerWord = word.toLowerCase();
+                    // Skip small words, verbs, pronouns - only replace meaningful content words
+                    if (word.length > 4 &&
+                        !['this', 'that', 'what', 'how', 'when', 'where', 'have', 'has', 'are', 'were', 'been'].includes(lowerWord) &&
+                        !word.endsWith('ing') && !word.endsWith('ed')) {
+                        contentWordPositions.push(index);
                     }
+                });
+
+                // Replace 1-2 content words with input words
+                if (contentWordPositions.length > 0 && inputWords.length > 0) {
+                    const positionsToReplace = contentWordPositions
+                        .sort(() => 0.5 - Math.random())
+                        .slice(0, Math.min(2, inputWords.length));
+
+                    positionsToReplace.forEach((position, i) => {
+                        responseWords[position] = inputWords[i % inputWords.length];
+                    });
+
+                    adaptedResponse = responseWords.join(' ');
                 }
 
-                console.log("Simple adaptation:", originalResponse, "→", adaptedResponse);
+                console.log("Smart adaptation:", originalResponse, "→", adaptedResponse);
                 return adaptedResponse;
 
             } catch (error) {
