@@ -447,119 +447,84 @@
 
         function craftNewResponse(input, opening, theme, examples) {
             try {
-                console.log("Learning pure grammar from", examples.length, "examples");
+                console.log("Learning from", examples.length, "examples");
 
-                // Get ALL words from all examples for context-aware selection
-                const allDatasetWords = examples.flatMap(example =>
-                    example.response.split(/\s+/).filter(word => word.length > 2 && !/[.!?,]/.test(word))
+                // Get ALL content from examples for richer generation
+                const allContent = examples.flatMap(example =>
+                    example.response.split(/[.!?]+/).filter(s => s.trim())
                 );
 
-                const allInputWords = input.toLowerCase().split(/\s+/).filter(word => word.length > 2);
-
-                // Analyze sentence structures
-                const grammarPatterns = examples.flatMap(example => {
-                    return example.response.split(/[.!?]+/)
-                        .filter(s => s.trim())
-                        .map(sentence => {
-                            const words = sentence.trim().split(/\s+/);
-                            return {
-                                words: words,
-                                structure: words.map((word, index) => {
-                                    if (index === 0 && /^[A-Z]/.test(word)) return 'START';
-                                    if (/[.!?,]$/.test(word)) return 'END';
-                                    if (word.length <= 3) return 'SHORT';
-                                    if (word.endsWith('ing')) return 'VERB_ING';
-                                    if (word.endsWith('ed')) return 'VERB_ED';
-                                    if (['is', 'are', 'was', 'were', 'have', 'has', 'do', 'does'].includes(word.toLowerCase())) return 'VERB_BE';
-                                    return 'NOUN';
-                                }),
-                                length: words.length,
-                                isQuestion: sentence.includes('?')
-                            };
-                        });
+                // Learn from MULTIPLE sentences to get variety
+                const learnedSentences = allContent.map(sentence => {
+                    const words = sentence.trim().split(/\s+/);
+                    return {
+                        full: sentence,
+                        words: words,
+                        structure: words.map((word, index) => {
+                            if (index === 0) return 'START';
+                            if (index === words.length - 1 && /[.!?]/.test(word)) return 'END';
+                            if (word.length <= 3) return 'SHORT';
+                            return 'CONTENT';
+                        })
+                    };
                 });
 
-                // Find the most common grammatical pattern
-                const commonStructures = grammarPatterns.map(p => p.structure.join(' '));
-                const structureCounts = {};
-                commonStructures.forEach(structure => {
-                    structureCounts[structure] = (structureCounts[structure] || 0) + 1;
-                });
+                // Choose a sentence pattern to follow
+                const pattern = learnedSentences[Math.floor(Math.random() * learnedSentences.length)];
+                console.log("Following pattern:", pattern.full);
 
-                const bestStructure = Object.keys(structureCounts)
-                    .sort((a, b) => structureCounts[b] - structureCounts[a])[0]
-                    .split(' ');
+                // Build response by intelligently combining patterns
+                let response = "";
 
-                console.log("Learned grammar pattern:", bestStructure);
-
-                // Build sentence with BETTER word selection
-                let newSentence = [];
-                let usedWords = new Set();
-
-                bestStructure.forEach((grammarType, index) => {
-                    let word;
-
-                    switch (grammarType) {
-                        case 'START':
-                            // Use actual opening words from dataset
-                            const startWords = examples.map(e => e.response.split(/\s+/)[0]).filter(w => w);
-                            word = startWords[Math.floor(Math.random() * startWords.length)] || 'The';
-                            break;
-
-                        case 'VERB_ING':
-                            const ingWords = allDatasetWords.filter(w => w.endsWith('ing'));
-                            word = ingWords[Math.floor(Math.random() * ingWords.length)] || 'being';
-                            break;
-
-                        case 'VERB_ED':
-                            const edWords = allDatasetWords.filter(w => w.endsWith('ed'));
-                            word = edWords[Math.floor(Math.random() * edWords.length)] || 'called';
-                            break;
-
-                        case 'VERB_BE':
-                            word = ['is', 'are', 'was', 'were'][Math.floor(Math.random() * 4)];
-                            break;
-
-                        case 'SHORT':
-                            word = ['the', 'a', 'in', 'on', 'at', 'to', 'for', 'with'][Math.floor(Math.random() * 8)];
-                            break;
-
-                        case 'END':
-                            word = '.';
-                            break;
-
-                        case 'NOUN':
-                        default:
-                            // Prefer words that make contextual sense
-                            const availableWords = allDatasetWords.filter(w => !usedWords.has(w));
-                            word = availableWords[Math.floor(Math.random() * availableWords.length)] ||
-                                allInputWords[Math.floor(Math.random() * allInputWords.length)] ||
-                                'conversation';
-                            usedWords.add(word);
-                            break;
-                    }
-
-                    newSentence.push(word);
-                });
-
-                let response = newSentence.join(' ');
-
-                // Clean up the response
-                response = response.replace(/\s+\./g, '.').replace(/\s+,/g, ',');
-                response = response.charAt(0).toUpperCase() + response.slice(1);
-
-                if (!/[.!?]$/.test(response)) {
-                    response += grammarPatterns.find(p => p.isQuestion) ? '?' : '.';
+                // Use the learned opening if it makes sense
+                if (opening.split(' ').length >= 2) {
+                    response = opening;
+                } else {
+                    // Otherwise use a complete opening from dataset
+                    const goodOpenings = learnedSentences
+                        .map(s => s.words.slice(0, 3).join(' '))
+                        .filter(open => open.split(' ').length >= 2);
+                    response = goodOpenings[Math.floor(Math.random() * goodOpenings.length)] || pattern.words.slice(0, 2).join(' ');
                 }
 
-                console.log("Grammar-based response:", response);
+                // Add meaningful continuation (not just random words)
+                const availableWords = [...new Set(examples.flatMap(e =>
+                    e.response.split(/\s+/).filter(w => w.length > 3 && !/[.!?]/.test(w))
+                ))];
+
+                // Add 2-4 content words to complete the thought
+                const contentWords = [];
+                for (let i = 0; i < 2 + Math.floor(Math.random() * 3); i++) {
+                    if (availableWords.length > 0) {
+                        const word = availableWords[Math.floor(Math.random() * availableWords.length)];
+                        contentWords.push(word);
+                    }
+                }
+
+                if (contentWords.length > 0) {
+                    response += " " + contentWords.join(' ');
+                }
+
+                // Add proper ending
+                const endsWithQuestion = pattern.full.includes('?');
+                if (endsWithQuestion) {
+                    response += "?";
+                } else if (!response.endsWith('.') && !response.endsWith('!')) {
+                    response += ".";
+                }
+
+                // Ensure proper capitalization
+                response = response.charAt(0).toUpperCase() + response.slice(1);
+
+                console.log("Complete response:", response);
                 return response;
 
             } catch (error) {
                 console.error("Error:", error);
-                return examples[0]?.response || "Let's continue our conversation.";
+                return examples[0]?.response || "Let's explore this further.";
             }
         }
+        
         // Load the selected model
         function loadSelectedModel() {
             const selectedModelName = modelDropdown.value;
