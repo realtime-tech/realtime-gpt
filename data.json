@@ -3,15 +3,12 @@
     {
       "name": "RT-mini",
       "dataset": [
-        // ========== KNOWLEDGE ITEMS (need input) ==========
         {"type": "knowledge", "input": "2+2", "response": "4"},
         {"type": "knowledge", "input": "capital of france", "response": "Paris"},
         {"type": "knowledge", "input": "color of the sky", "response": "blue"},
         {"type": "knowledge", "input": "largest planet", "response": "Jupiter"},
         {"type": "knowledge", "input": "human bones", "response": "206"},
         {"type": "knowledge", "input": "water boiling point", "response": "100°C or 212°F"},
-        
-        // ========== CONVERSATION ITEMS (need input) ==========
         {"type": "conversation", "input": "hello", "response": "Hello! How can I help you today?"},
         {"type": "conversation", "input": "what are you", "response": "I'm RT-mini, an AI assistant designed to have helpful conversations."},
         {"type": "conversation", "input": "how are you", "response": "I'm functioning well, thank you! How are you doing?"},
@@ -19,9 +16,6 @@
         {"type": "conversation", "input": "good morning", "response": "Good morning! How are you today?"},
         {"type": "conversation", "input": "good night", "response": "Good night! Sleep well!"},
         {"type": "conversation", "input": "thank you", "response": "You're welcome!"},
-        
-        // ========== MODULAR COMPONENTS (no input needed) ==========
-        // OPENERS
         {"type": "opener", "category": "greeting", "response": "Hello there!"},
         {"type": "opener", "category": "greeting", "response": "Hi!"},
         {"type": "opener", "category": "greeting", "response": "Hey!"},
@@ -41,8 +35,6 @@
         {"type": "opener", "category": "general", "response": "I see"},
         {"type": "opener", "category": "general", "response": "That's interesting"},
         {"type": "opener", "category": "general", "response": "I understand"},
-        
-        // MIDDLES
         {"type": "middle", "category": "greeting", "response": "What would you like to talk about?"},
         {"type": "middle", "category": "greeting", "response": "How has your day been?"},
         {"type": "middle", "category": "greeting", "response": "What's on your mind?"},
@@ -61,9 +53,7 @@
         {"type": "middle", "category": "help", "response": "What specifically are you looking for help with?"},
         {"type": "middle", "category": "general", "response": "could you tell me more about that?"},
         {"type": "middle", "category": "general", "response": "what are your thoughts on this?"},
-        {"type": "middle", "category": "general", "response": "how do you feel about that?"},
-        
-        // CLOSERS
+        {"type": "middle", "category": "general", "response": "how do you feel about that?"},  
         {"type": "closer", "category": "greeting", "response": "What would you like to discuss?"},
         {"type": "closer", "category": "greeting", "response": "What can I help you with today?"},
         {"type": "closer", "category": "greeting", "response": "How can I assist you?"},
