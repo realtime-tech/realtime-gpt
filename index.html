@@ -387,7 +387,7 @@
         let models = [];
         let dataset = [];
 
-        // ==================== LEGACY AI SYSTEM ====================
+        // ==================== IMPROVED AI SYSTEM ====================
 
         async function generateAIResponse(input) {
             console.log("=== NEW INPUT:", input);
@@ -402,7 +402,7 @@
                 return exactMatch.response;
             }
 
-            // 2. Similarity matching
+            // 2. Similarity matching with better calculation
             const similarities = dataset.map(item => ({
                 item,
                 similarity: calculateSimilarity(inputLower, item.input.toLowerCase())
@@ -411,29 +411,72 @@
             similarities.sort((a, b) => b.similarity - a.similarity);
 
             const topSimilarity = similarities[0]?.similarity || 0;
-            const topMatches = similarities.slice(0, 3).filter(item => item.similarity > 0.3);
+            const topMatches = similarities.slice(0, 3).filter(item => item.similarity > 0.4); // Increased threshold
 
             console.log("Best similarity:", topSimilarity, "Top matches:", topMatches.length);
+            if (topMatches.length > 0) {
+                console.log("Top match input:", topMatches[0].item.input, "Similarity:", topMatches[0].similarity);
+            }
 
             if (topMatches.length > 0) {
                 console.log("USING SIMILARITY MATCH");
                 return topMatches[0].item.response;
             }
 
-            // 3. Fallback to random dataset response
-            console.log("FALLBACK TO RANDOM");
-            const randomItem = dataset[Math.floor(Math.random() * dataset.length)];
-            return randomItem.response;
+            // 3. Smart fallback instead of random
+            console.log("FALLBACK TO GENERIC");
+            return getGenericFallback(input);
         }
 
         function calculateSimilarity(str1, str2) {
-            const words1 = new Set(str1.toLowerCase().split(/\s+/));
-            const words2 = new Set(str2.toLowerCase().split(/\s+/));
+            // Clean strings better - remove punctuation and very short words
+            const cleanStr1 = str1.toLowerCase().replace(/[^\w\s]/g, '');
+            const cleanStr2 = str2.toLowerCase().replace(/[^\w\s]/g, '');
+
+            const words1 = new Set(cleanStr1.split(/\s+/).filter(w => w.length > 2)); // Only words > 2 chars
+            const words2 = new Set(cleanStr2.split(/\s+/).filter(w => w.length > 2));
+
+            // If either set is empty after filtering, similarity is 0
+            if (words1.size === 0 || words2.size === 0) return 0;
 
             const intersection = new Set([...words1].filter(x => words2.has(x)));
             const union = new Set([...words1, ...words2]);
 
             return intersection.size / union.size;
+        }
+
+        function getGenericFallback(input) {
+            const inputLower = input.toLowerCase();
+
+            // Smarter fallbacks based on input type
+            if (inputLower.match(/\b(what|why|how|when|where|who|explain)\b/)) {
+                const questionFallbacks = [
+                    "That's an interesting question, but I don't have enough information about that specific topic.",
+                    "I'm still learning about that subject. Could you ask me something else?",
+                    "I don't have a good answer for that right now. Is there something else I can help with?",
+                    "That's outside my current knowledge base. What other topics are you interested in?"
+                ];
+                return questionFallbacks[Math.floor(Math.random() * questionFallbacks.length)];
+            }
+
+            if (inputLower.match(/\b(sad|happy|angry|excited|bored|tired|anxious|depressed|feel)\b/)) {
+                const emotionalFallbacks = [
+                    "I hear you. Want to talk more about what you're experiencing?",
+                    "I'm here to listen if you want to share what's going on.",
+                    "It sounds like you're going through something. I'm here to support you.",
+                    "I understand you're feeling something strong. Want to discuss it?"
+                ];
+                return emotionalFallbacks[Math.floor(Math.random() * emotionalFallbacks.length)];
+            }
+
+            // General fallback
+            const generalFallbacks = [
+                "I'm not sure how to respond to that. Could you try asking something else?",
+                "That's an interesting thing to bring up! What else would you like to talk about?",
+                "I'm still learning how to have conversations about everything. What other topics interest you?",
+                "I don't have a response for that right now. Is there something else on your mind?"
+            ];
+            return generalFallbacks[Math.floor(Math.random() * generalFallbacks.length)];
         }
 
         // ==================== UTILITY FUNCTIONS ====================
