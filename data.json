@@ -2,190 +2,87 @@
   "models": [
     {
       "name": "RT-mini",
-      "dataset": {
-        "conversations": [
-          {
-            "input": "hello",
-            "response": "Hello! How can I help you today?"
-          },
-          {
-            "input": "what are you",
-            "response": "I'm RT-mini, an AI assistant designed to have helpful conversations. What would you like to talk about?"
-          },
-          {
-            "input": "how are you",
-            "response": "I'm functioning well, thank you! How are you doing today?"
-          }
-        ],
-        "openers": {
-          "greeting": [
-            "Hello there!",
-            "Hi!",
-            "Hey!",
-            "Greetings!",
-            "Good to see you!"
-          ],
-          "emotional": [
-            "I understand you're feeling",
-            "That sounds",
-            "I hear you",
-            "It seems like you're",
-            "I can see that you're"
-          ],
-          "question": [
-            "That's an interesting question",
-            "I've wondered about that too",
-            "That's a good question",
-            "I think about that sometimes",
-            "Let me share my perspective on that"
-          ],
-          "gratitude": [
-            "You're welcome!",
-            "Happy to help!",
-            "No problem at all!",
-            "Glad I could assist!",
-            "Anytime!"
-          ],
-          "farewell": [
-            "Goodbye!",
-            "See you later!",
-            "Take care!",
-            "Have a great day!",
-            "Talk to you soon!"
-          ],
-          "help": [
-            "I'd be happy to help with that",
-            "Let me see if I can assist",
-            "I can try to help you with that",
-            "I'll do my best to help",
-            "I'm here to help with that"
-          ],
-          "general": [
-            "I see",
-            "That's interesting",
-            "I understand",
-            "That makes sense",
-            "I get what you're saying"
-          ]
-        },
-        "middles": {
-          "greeting": [
-            "What would you like to talk about?",
-            "How has your day been?",
-            "What's on your mind?",
-            "Is there anything I can help you with?",
-            "What shall we discuss?"
-          ],
-          "emotional": [
-            "and I'm here to listen if you want to talk more about it",
-            "that must be challenging to deal with",
-            "it's completely normal to feel that way sometimes",
-            "would you like to talk about what's causing those feelings?",
-            "sometimes talking about it can help process those emotions",
-            "everyone experiences emotions differently",
-            "it's okay to feel whatever you're feeling right now",
-            "emotional awareness is an important part of understanding yourself",
-            "feelings often have valuable information to share with us",
-            "taking time to acknowledge emotions can be really helpful"
-          ],
-          "question": [
-            "from what I understand,",
-            "based on general knowledge,",
-            "typically,",
-            "usually,",
-            "often times,",
-            "in many cases,",
-            "generally speaking,",
-            "commonly,",
-            "frequently,",
-            "in my understanding,"
-          ],
-          "gratitude": [
-            "Is there anything else you need help with?",
-            "Let me know if you need anything else!",
-            "Feel free to ask if you have more questions!",
-            "I'm always here if you need assistance!",
-            "Don't hesitate to reach out again!"
-          ],
-          "farewell": [
-            "It was nice talking with you!",
-            "Thanks for the conversation!",
-            "I enjoyed our chat!",
-            "Looking forward to our next conversation!",
-            "Stay well!"
-          ],
-          "help": [
-            "Could you tell me more about what you need?",
-            "What specifically are you looking for help with?",
-            "Let me know the details and I'll do my best!",
-            "I'm ready to assist however I can!",
-            "Just let me know what you need!"
-          ],
-          "general": [
-            "could you tell me more about that?",
-            "what are your thoughts on this?",
-            "how do you feel about that?",
-            "what's your perspective on this?",
-            "I'd love to hear more about your experience",
-            "that's really interesting to consider",
-            "there are many ways to look at that",
-            "different people might have different views on that",
-            "that's a topic worth exploring further",
-            "there's a lot to think about with that"
-          ]
-        },
-        "closers": {
-          "greeting": [
-            "What would you like to discuss?",
-            "Is there something specific on your mind?",
-            "What can I help you with today?",
-            "What shall we talk about?",
-            "How can I assist you?"
-          ],
-          "emotional": [
-            "How are you managing those feelings?",
-            "What's been helping you cope?",
-            "Would you like to explore this further?",
-            "How can I support you right now?",
-            "What do you think might help you feel better?"
-          ],
-          "question": [
-            "Does that answer your question?",
-            "Would you like me to elaborate on anything?",
-            "Does that make sense?",
-            "Is there anything else you're wondering about?",
-            "What are your thoughts on that?"
-          ],
-          "gratitude": [
-            "Have a great day!",
-            "Take care!",
-            "All the best!",
-            "Stay well!",
-            "Until next time!"
-          ],
-          "farewell": [
-            "Looking forward to our next chat!",
-            "Hope to talk with you again soon!",
-            "Wishing you all the best!",
-            "Take care of yourself!",
-            "Until we chat again!"
-          ],
-          "help": [
-            "What would you like me to help with first?",
-            "Where should we start?",
-            "What's the most important thing to address?",
-            "How can I be most helpful to you?",
-            "What's your main concern?"
-          ],
-          "general": [
-            "What are your thoughts on this?",
-            "How do you see it?",
-            "What's your take on this?",
-            "I'm curious about your perspective",
-            "What do you think about that?"
-          ]
-        }
-      }
+      "dataset": [
+        // ========== KNOWLEDGE ITEMS (need input) ==========
+        {"type": "knowledge", "input": "2+2", "response": "4"},
+        {"type": "knowledge", "input": "capital of france", "response": "Paris"},
+        {"type": "knowledge", "input": "color of the sky", "response": "blue"},
+        {"type": "knowledge", "input": "largest planet", "response": "Jupiter"},
+        {"type": "knowledge", "input": "human bones", "response": "206"},
+        {"type": "knowledge", "input": "water boiling point", "response": "100°C or 212°F"},
+        
+        // ========== CONVERSATION ITEMS (need input) ==========
+        {"type": "conversation", "input": "hello", "response": "Hello! How can I help you today?"},
+        {"type": "conversation", "input": "what are you", "response": "I'm RT-mini, an AI assistant designed to have helpful conversations."},
+        {"type": "conversation", "input": "how are you", "response": "I'm functioning well, thank you! How are you doing?"},
+        {"type": "conversation", "input": "tell me a joke", "response": "Why don't scientists trust atoms? Because they make up everything!"},
+        {"type": "conversation", "input": "good morning", "response": "Good morning! How are you today?"},
+        {"type": "conversation", "input": "good night", "response": "Good night! Sleep well!"},
+        {"type": "conversation", "input": "thank you", "response": "You're welcome!"},
+        
+        // ========== MODULAR COMPONENTS (no input needed) ==========
+        // OPENERS
+        {"type": "opener", "category": "greeting", "response": "Hello there!"},
+        {"type": "opener", "category": "greeting", "response": "Hi!"},
+        {"type": "opener", "category": "greeting", "response": "Hey!"},
+        {"type": "opener", "category": "greeting", "response": "Greetings!"},
+        {"type": "opener", "category": "emotional", "response": "I understand you're feeling"},
+        {"type": "opener", "category": "emotional", "response": "That sounds"},
+        {"type": "opener", "category": "emotional", "response": "I hear you"},
+        {"type": "opener", "category": "question", "response": "That's an interesting question"},
+        {"type": "opener", "category": "question", "response": "I've wondered about that too"},
+        {"type": "opener", "category": "question", "response": "That's a good question"},
+        {"type": "opener", "category": "gratitude", "response": "You're welcome!"},
+        {"type": "opener", "category": "gratitude", "response": "Happy to help!"},
+        {"type": "opener", "category": "farewell", "response": "Goodbye!"},
+        {"type": "opener", "category": "farewell", "response": "See you later!"},
+        {"type": "opener", "category": "help", "response": "I'd be happy to help with that"},
+        {"type": "opener", "category": "help", "response": "Let me see if I can assist"},
+        {"type": "opener", "category": "general", "response": "I see"},
+        {"type": "opener", "category": "general", "response": "That's interesting"},
+        {"type": "opener", "category": "general", "response": "I understand"},
+        
+        // MIDDLES
+        {"type": "middle", "category": "greeting", "response": "What would you like to talk about?"},
+        {"type": "middle", "category": "greeting", "response": "How has your day been?"},
+        {"type": "middle", "category": "greeting", "response": "What's on your mind?"},
+        {"type": "middle", "category": "emotional", "response": "and I'm here to listen if you want to talk more about it"},
+        {"type": "middle", "category": "emotional", "response": "that must be challenging to deal with"},
+        {"type": "middle", "category": "emotional", "response": "it's completely normal to feel that way sometimes"},
+        {"type": "middle", "category": "question", "response": "from what I understand"},
+        {"type": "middle", "category": "question", "response": "based on general knowledge"},
+        {"type": "middle", "category": "question", "response": "typically"},
+        {"type": "middle", "category": "question", "response": "usually"},
+        {"type": "middle", "category": "gratitude", "response": "Is there anything else you need help with?"},
+        {"type": "middle", "category": "gratitude", "response": "Let me know if you need anything else!"},
+        {"type": "middle", "category": "farewell", "response": "It was nice talking with you!"},
+        {"type": "middle", "category": "farewell", "response": "Thanks for the conversation!"},
+        {"type": "middle", "category": "help", "response": "Could you tell me more about what you need?"},
+        {"type": "middle", "category": "help", "response": "What specifically are you looking for help with?"},
+        {"type": "middle", "category": "general", "response": "could you tell me more about that?"},
+        {"type": "middle", "category": "general", "response": "what are your thoughts on this?"},
+        {"type": "middle", "category": "general", "response": "how do you feel about that?"},
+        
+        // CLOSERS
+        {"type": "closer", "category": "greeting", "response": "What would you like to discuss?"},
+        {"type": "closer", "category": "greeting", "response": "What can I help you with today?"},
+        {"type": "closer", "category": "greeting", "response": "How can I assist you?"},
+        {"type": "closer", "category": "emotional", "response": "How are you managing those feelings?"},
+        {"type": "closer", "category": "emotional", "response": "What's been helping you cope?"},
+        {"type": "closer", "category": "emotional", "response": "Would you like to explore this further?"},
+        {"type": "closer", "category": "question", "response": "Does that answer your question?"},
+        {"type": "closer", "category": "question", "response": "Would you like me to elaborate on anything?"},
+        {"type": "closer", "category": "question", "response": "Does that make sense?"},
+        {"type": "closer", "category": "gratitude", "response": "Have a great day!"},
+        {"type": "closer", "category": "gratitude", "response": "Take care!"},
+        {"type": "closer", "category": "farewell", "response": "Looking forward to our next chat!"},
+        {"type": "closer", "category": "farewell", "response": "Hope to talk with you again soon!"},
+        {"type": "closer", "category": "help", "response": "What would you like me to help with first?"},
+        {"type": "closer", "category": "help", "response": "Where should we start?"},
+        {"type": "closer", "category": "general", "response": "What are your thoughts on this?"},
+        {"type": "closer", "category": "general", "response": "How do you see it?"},
+        {"type": "closer", "category": "general", "response": "What do you think about that?"}
+      ]
     }
   ]
 }
