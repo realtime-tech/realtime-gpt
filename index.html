@@ -411,7 +411,7 @@
             similarities.sort((a, b) => b.similarity - a.similarity);
 
             const topSimilarity = similarities[0]?.similarity || 0;
-            const topMatches = similarities.slice(0, 3).filter(item => item.similarity > 0.4); // Increased threshold
+            const topMatches = similarities.slice(0, 3).filter(item => item.similarity > 0.4);
 
             console.log("Best similarity:", topSimilarity, "Top matches:", topMatches.length);
             if (topMatches.length > 0) {
@@ -429,14 +429,12 @@
         }
 
         function calculateSimilarity(str1, str2) {
-            // Clean strings better - remove punctuation and very short words
             const cleanStr1 = str1.toLowerCase().replace(/[^\w\s]/g, '');
             const cleanStr2 = str2.toLowerCase().replace(/[^\w\s]/g, '');
 
-            const words1 = new Set(cleanStr1.split(/\s+/).filter(w => w.length > 2)); // Only words > 2 chars
+            const words1 = new Set(cleanStr1.split(/\s+/).filter(w => w.length > 2));
             const words2 = new Set(cleanStr2.split(/\s+/).filter(w => w.length > 2));
 
-            // If either set is empty after filtering, similarity is 0
             if (words1.size === 0 || words2.size === 0) return 0;
 
             const intersection = new Set([...words1].filter(x => words2.has(x)));
@@ -448,7 +446,6 @@
         function getGenericFallback(input) {
             const inputLower = input.toLowerCase();
 
-            // Smarter fallbacks based on input type
             if (inputLower.match(/\b(what|why|how|when|where|who|explain)\b/)) {
                 const questionFallbacks = [
                     "That's an interesting question, but I don't have enough information about that specific topic.",
@@ -469,7 +466,6 @@
                 return emotionalFallbacks[Math.floor(Math.random() * emotionalFallbacks.length)];
             }
 
-            // General fallback
             const generalFallbacks = [
                 "I'm not sure how to respond to that. Could you try asking something else?",
                 "That's an interesting thing to bring up! What else would you like to talk about?",
@@ -501,15 +497,16 @@
 
         // ==================== MODEL MANAGEMENT ====================
 
-        // ==================== MODEL MANAGEMENT ====================
-
         async function loadModels() {
             try {
-                // Load the list of available model files
-                const listResponse = await fetch('model-list.json');
-                const modelFiles = await listResponse.json();
+                // List of model files we know exist in the models folder
+                const modelFiles = [
+                    'rt-mini.json',
+                    'tech-support.json',
+                    'creative-writer.json'
+                ];
 
-                console.log('Found model files:', modelFiles);
+                console.log('Loading model files:', modelFiles);
 
                 // Load each model file
                 models = [];
@@ -539,15 +536,28 @@
                     modelDropdown.appendChild(option);
                 });
 
+                // Load the first model
                 currentModel = models[0];
                 dataset = currentModel.dataset || [];
-                addMessage(`Model "${currentModel.name}" loaded. How can I help?`, 'ai');
+                addMessage(`Model "${currentModel.name}" loaded successfully. How can I help you today?`, 'ai');
 
             } catch (error) {
-                console.error('Error:', error);
-                addMessage('Error loading models.', 'ai');
-                modelDropdown.innerHTML = '<option value="">No models</option>';
+                console.error('Error loading models:', error);
+                addMessage('Error loading models. Please check if the model files exist.', 'ai');
+                modelDropdown.innerHTML = '<option value="">No models available</option>';
             }
+        }
+
+        function loadSelectedModel() {
+            const selectedModelName = modelDropdown.value;
+            if (!selectedModelName) return;
+
+            currentModel = models.find(m => m.name === selectedModelName);
+            dataset = currentModel.dataset || [];
+
+            // Clear chat and show model loaded message
+            chatMessages.innerHTML = '';
+            addMessage(`Model "${currentModel.name}" loaded successfully. How can I help you today?`, 'ai');
         }
 
         // ==================== EVENT HANDLERS ====================
