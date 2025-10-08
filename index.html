@@ -447,84 +447,93 @@
 
         function craftNewResponse(input, opening, theme, examples) {
             try {
-                console.log("Learning from", examples.length, "examples");
+                console.log("SMART pattern learning from", examples.length, "examples");
 
-                // Get ALL content from examples for richer generation
-                const allContent = examples.flatMap(example =>
-                    example.response.split(/[.!?]+/).filter(s => s.trim())
-                );
+                // Analyze COMPLETE conversation patterns, not just individual sentences
+                const conversationPairs = examples.map(example => ({
+                    input: example.input,
+                    response: example.response,
+                    inputWords: example.input.toLowerCase().split(/\s+/),
+                    responseSentences: example.response.split(/[.!?]+/).filter(s => s.trim())
+                }));
 
-                // Learn from MULTIPLE sentences to get variety
-                const learnedSentences = allContent.map(sentence => {
-                    const words = sentence.trim().split(/\s+/);
+                // Learn how inputs map to responses
+                const responsePatterns = conversationPairs.map(pair => {
+                    const firstSentence = pair.responseSentences[0];
+                    const words = firstSentence.trim().split(/\s+/);
+
                     return {
-                        full: sentence,
-                        words: words,
-                        structure: words.map((word, index) => {
-                            if (index === 0) return 'START';
-                            if (index === words.length - 1 && /[.!?]/.test(word)) return 'END';
-                            if (word.length <= 3) return 'SHORT';
-                            return 'CONTENT';
-                        })
+                        inputType: pair.inputWords[0], // "hey", "what", "how", etc.
+                        responseStructure: words.map((word, index) => ({
+                            word: word,
+                            position: index,
+                            isStart: index === 0,
+                            isEnd: index === words.length - 1,
+                            type: classifyWordType(word, index, words.length)
+                        })),
+                        fullResponse: firstSentence
                     };
                 });
 
-                // Choose a sentence pattern to follow
-                const pattern = learnedSentences[Math.floor(Math.random() * learnedSentences.length)];
-                console.log("Following pattern:", pattern.full);
+                // Find patterns for similar inputs
+                const inputWords = input.toLowerCase().split(/\s+/);
+                const similarPatterns = responsePatterns.filter(pattern =>
+                    pattern.inputType === inputWords[0] ||
+                    examples.some(ex => ex.input.toLowerCase().includes(inputWords[0]))
+                );
 
-                // Build response by intelligently combining patterns
-                let response = "";
+                // Build response using learned conversation patterns
+                if (similarPatterns.length > 0) {
+                    const pattern = similarPatterns[Math.floor(Math.random() * similarPatterns.length)];
 
-                // Use the learned opening if it makes sense
-                if (opening.split(' ').length >= 2) {
-                    response = opening;
-                } else {
-                    // Otherwise use a complete opening from dataset
-                    const goodOpenings = learnedSentences
-                        .map(s => s.words.slice(0, 3).join(' '))
-                        .filter(open => open.split(' ').length >= 2);
-                    response = goodOpenings[Math.floor(Math.random() * goodOpenings.length)] || pattern.words.slice(0, 2).join(' ');
+                    // Reconstruct following the learned pattern but with variation
+                    let newResponse = pattern.responseStructure.map(item => {
+                        if (item.isStart) {
+                            return opening.split(' ')[0] || item.word; // Use our opening
+                        } else if (item.type === 'content') {
+                            // Replace content words with alternatives from dataset
+                            const alternatives = getSimilarWords(item.word, examples);
+                            return alternatives[Math.floor(Math.random() * alternatives.length)] || item.word;
+                        } else {
+                            return item.word; // Keep structure words
+                        }
+                    }).join(' ');
+
+                    console.log("Pattern-based response:", newResponse);
+                    return newResponse;
                 }
 
-                // Add meaningful continuation (not just random words)
-                const availableWords = [...new Set(examples.flatMap(e =>
-                    e.response.split(/\s+/).filter(w => w.length > 3 && !/[.!?]/.test(w))
-                ))];
-
-                // Add 2-4 content words to complete the thought
-                const contentWords = [];
-                for (let i = 0; i < 2 + Math.floor(Math.random() * 3); i++) {
-                    if (availableWords.length > 0) {
-                        const word = availableWords[Math.floor(Math.random() * availableWords.length)];
-                        contentWords.push(word);
-                    }
-                }
-
-                if (contentWords.length > 0) {
-                    response += " " + contentWords.join(' ');
-                }
-
-                // Add proper ending
-                const endsWithQuestion = pattern.full.includes('?');
-                if (endsWithQuestion) {
-                    response += "?";
-                } else if (!response.endsWith('.') && !response.endsWith('!')) {
-                    response += ".";
-                }
-
-                // Ensure proper capitalization
-                response = response.charAt(0).toUpperCase() + response.slice(1);
-
-                console.log("Complete response:", response);
-                return response;
+                // Fallback: Use the most complete pattern available
+                const bestPattern = responsePatterns[0];
+                return bestPattern ? bestPattern.fullResponse : examples[0].response;
 
             } catch (error) {
                 console.error("Error:", error);
-                return examples[0]?.response || "Let's explore this further.";
+                return examples[0]?.response || "Let's continue our conversation.";
             }
         }
-        
+
+        // Helper function to classify words by their role
+        function classifyWordType(word, position, totalLength) {
+            const smallWords = ['the', 'a', 'in', 'on', 'at', 'to', 'for', 'with', 'your', 'my', 'our'];
+            if (smallWords.includes(word.toLowerCase())) return 'structure';
+            if (position === 0) return 'start';
+            if (position === totalLength - 1) return 'end';
+            return 'content';
+        }
+
+        // Helper function to find similar words in dataset
+        function getSimilarWords(targetWord, examples) {
+            const allWords = [...new Set(examples.flatMap(e =>
+                e.response.split(/\s+/).filter(w => w.length > 3)
+            ))];
+            return allWords.filter(word =>
+                word !== targetWord &&
+                word.length === targetWord.length && // Similar length words often serve similar roles
+                word.charAt(0) === targetWord.charAt(0) // Same starting letter often indicates similar type
+            );
+        }
+
         // Load the selected model
         function loadSelectedModel() {
             const selectedModelName = modelDropdown.value;
