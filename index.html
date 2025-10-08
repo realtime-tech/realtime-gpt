@@ -499,7 +499,36 @@
                         }
                     }).join(' ');
 
+
+
+
                     console.log("Pattern-based response:", newResponse);
+
+                    // === ADD THIS COMPLETION FIX RIGHT HERE ===
+                    // Ensure response is complete
+                    if (newResponse.split(' ').length < 4) {
+                        console.log("Response too short, adding completion");
+                        // Add a meaningful continuation from dataset patterns
+                        const continuations = examples.flatMap(e =>
+                            e.response.split(/[.!?]+/)
+                                .filter(s => s.split(' ').length >= 4)
+                                .map(s => s.trim())
+                        );
+
+                        if (continuations.length > 0) {
+                            const continuation = continuations[Math.floor(Math.random() * continuations.length)];
+                            // Take first 3-5 words of a complete thought
+                            const words = continuation.split(' ').slice(0, 3 + Math.floor(Math.random() * 3));
+                            newResponse += " " + words.join(' ');
+                        }
+                    }
+
+                    // Ensure proper punctuation
+                    if (!newResponse.endsWith('.') && !newResponse.endsWith('!') && !newResponse.endsWith('?')) {
+                        newResponse += '.';
+                    }
+                    // === END OF COMPLETION FIX ===
+
                     return newResponse;
                 }
 
