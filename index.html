@@ -503,23 +503,42 @@
 
         async function loadModels() {
             try {
-                // Try to get list of model files from models directory
-                const modelFiles = [
-                    'rt-mini.json',
-                    'tech-support.json',
-                    'creative-writer.json'
-                ]; // You can add more model files here
+                // First, try to get a directory listing of the models folder
+                const modelsResponse = await fetch('models/');
+                if (!modelsResponse.ok) {
+                    throw new Error('Cannot access models directory');
+                }
+
+                const modelsText = await modelsResponse.text();
+
+                // Parse the HTML directory listing to find JSON files
+                const parser = new DOMParser();
+                const htmlDoc = parser.parseFromString(modelsText, 'text/html');
+                const links = htmlDoc.querySelectorAll('a[href$=".json"]');
+
+                if (links.length === 0) {
+                    throw new Error('No JSON files found in models directory');
+                }
+
+                // Extract filenames from links
+                const modelFiles = Array.from(links).map(link => {
+                    const href = link.getAttribute('href');
+                    return href.startsWith('models/') ? href : `models/${href}`;
+                });
+
+                console.log('Found model files:', modelFiles);
 
                 // Load each model file
                 models = [];
                 for (const modelFile of modelFiles) {
                     try {
-                        const response = await fetch(`models/${modelFile}`);
+                        const response = await fetch(modelFile);
                         if (response.ok) {
                             const modelData = await response.json();
                             // Each file should contain exactly one model object
                             if (modelData.name && modelData.dataset) {
                                 models.push(modelData);
+                                console.log(`Loaded model: ${modelData.name}`);
                             }
                         }
                     } catch (error) {
@@ -528,7 +547,7 @@
                 }
 
                 if (models.length === 0) {
-                    throw new Error('No valid models could be loaded');
+                    throw new Error('No valid models could be loaded from JSON files');
                 }
 
                 // Populate model dropdown
