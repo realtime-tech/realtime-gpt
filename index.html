@@ -387,136 +387,87 @@
         let models = [];
         let dataset = [];
 
-        // ==================== CORE AI FUNCTIONS ====================
+        // ==================== NEW MODULAR AI SYSTEM ====================
 
         async function generateAIResponse(input) {
             console.log("=== NEW INPUT:", input);
             const inputLower = input.toLowerCase().trim();
 
-            // 1. Exact match
-            const exactMatch = dataset.find(example => example.input.toLowerCase().trim() === inputLower);
+            // 1. Exact match (for specific conversations)
+            const exactMatch = dataset.conversations?.find(conv =>
+                conv.input.toLowerCase().trim() === inputLower
+            );
             if (exactMatch) {
-                console.log("EXACT MATCH USED");
+                console.log("EXACT CONVERSATION MATCH");
                 return exactMatch.response;
             }
 
-            // 2. Similarity search
-            const similarities = dataset.map(example => ({
-                example,
-                similarity: calculateSimilarity(inputLower, example.input.toLowerCase())
-            }));
-
-            similarities.sort((a, b) => b.similarity - a.similarity);
-
-            // Use flexible similarity threshold
-            const topSimilarity = similarities[0]?.similarity || 0;
-            const topExamples = similarities.slice(0, 5).filter(item =>
-                item.similarity > Math.max(0.08, topSimilarity * 0.8)
-            );
-
-            console.log("Top examples found:", topExamples.length, "Best similarity:", topSimilarity);
-
-            // 3. Pattern generation
-            if (topExamples.length > 0) {
-                console.log("ATTEMPTING PATTERN GENERATION");
-                const generated = await generateFromPatterns(input, topExamples.map(t => t.example));
-                console.log("Generated response:", generated);
-                return generated;
-            }
-
-            // 4. Fallback to exact dataset response
-            console.log("FALLING BACK TO DATASET");
-            const randomExample = dataset[Math.floor(Math.random() * dataset.length)];
-            return randomExample.response;
+            // 2. Build response from modular components
+            const response = await buildModularResponse(input);
+            console.log("Modular response:", response);
+            return response;
         }
 
-        function generateFromPatterns(input, examples) {
-            console.log("Generating from patterns with", examples.length, "examples");
+        async function buildModularResponse(input) {
+            const inputLower = input.toLowerCase();
 
-            // Extract patterns from examples
-            const responses = examples.map(e => e.response);
-            const commonOpenings = responses.map(r => {
-                const firstSentence = r.split(/[.!?]+/)[0];
-                return firstSentence.split(' ').slice(0, 4).join(' ');
-            });
+            // Analyze input to determine response type
+            const responseType = analyzeInputType(inputLower);
+            console.log("Response type:", responseType);
 
-            const randomOpening = commonOpenings[Math.floor(Math.random() * commonOpenings.length)];
-            console.log("Using opening:", randomOpening);
+            // Get appropriate components
+            const opener = getRandomComponent(dataset.openers, responseType);
+            const middle = getRandomComponent(dataset.middles, responseType);
+            const closer = getRandomComponent(dataset.closers, responseType);
 
-            return craftNewResponse(input, randomOpening, examples);
-        }
+            // Build coherent response
+            let response = opener;
 
-        function craftNewResponse(input, opening, examples) {
-            try {
-                const mostSimilar = examples[0];
-                if (!mostSimilar) return "Let's explore this further.";
-
-                const originalResponse = mostSimilar.response;
-                const inputWords = input.toLowerCase().split(/\s+/).filter(w => w.length > 3);
-
-                if (inputWords.length === 0) {
-                    return originalResponse;
-                }
-
-                // Smart word replacement
-                const adaptedResponse = smartWordReplacement(originalResponse, inputWords);
-                console.log("Smart adaptation:", originalResponse, "→", adaptedResponse);
-                return adaptedResponse;
-
-            } catch (error) {
-                console.error("Error in generation:", error);
-                return examples[0]?.response || "Let's continue our conversation.";
-            }
-        }
-
-        function smartWordReplacement(original, inputWords) {
-            const words = original.split(/\s+/);
-
-            // Identify content words (long words that aren't common structure words)
-            const commonWords = new Set(['the', 'and', 'but', 'for', 'with', 'this', 'that', 'what', 'how', 'when', 'where', 'your', 'my', 'our', 'have', 'has', 'are', 'were']);
-            const openingWords = ['greetings', 'hello', 'hi', 'hey', 'right', 'currently', 'just'];
-
-            const contentWordPositions = [];
-            words.forEach((word, index) => {
-                const cleanWord = word.toLowerCase().replace(/[^a-z]/g, '');
-                // Don't replace opening words or common words
-                if (cleanWord.length > 4 &&
-                    !commonWords.has(cleanWord) &&
-                    !openingWords.includes(cleanWord) &&
-                    !word.endsWith('ing') &&
-                    !word.endsWith('ed') &&
-                    index > 1) { // Skip first 2 words to preserve openings
-                    contentWordPositions.push(index);
-                }
-            });
-
-            // Replace 1-2 content words with input words
-            if (contentWordPositions.length > 0) {
-                const newWords = [...words];
-                const replacements = Math.min(2, contentWordPositions.length, inputWords.length);
-
-                for (let i = 0; i < replacements; i++) {
-                    const pos = contentWordPositions[i];
-                    newWords[pos] = inputWords[i];
-                }
-
-                return newWords.join(' ');
+            // Add middle with proper transition
+            if (middle && !opener.endsWith('!') && !opener.endsWith('?')) {
+                response += " " + middle.toLowerCase();
+            } else if (middle) {
+                response += " " + middle;
             }
 
-            return original;
+            // Add closer with proper punctuation
+            if (closer) {
+                if (!response.endsWith('.') && !response.endsWith('!') && !response.endsWith('?')) {
+                    response += ".";
+                }
+                response += " " + closer;
+            }
+
+            // Ensure proper capitalization and punctuation
+            response = response.charAt(0).toUpperCase() + response.slice(1);
+            if (!response.endsWith('.') && !response.endsWith('!') && !response.endsWith('?')) {
+                response += '.';
+            }
+
+            return response;
+        }
+
+        function analyzeInputType(input) {
+            if (input.match(/\b(hi|hello|hey|greetings|what's up|yo)\b/)) return 'greeting';
+            if (input.match(/\b(how are you|how do you feel|how's it going)\b/)) return 'emotional';
+            if (input.match(/\b(what|why|how|when|where|who)\b/)) return 'question';
+            if (input.match(/\b(dream|sleep|night|vision)\b/)) return 'dream';
+            if (input.match(/\b(magic|spell|wizard|witch|enchant)\b/)) return 'magic';
+            if (input.match(/\b(star|moon|sky|cosmic|universe)\b/)) return 'cosmic';
+            return 'general';
+        }
+
+        function getRandomComponent(components, type) {
+            if (!components) return '';
+
+            // Filter by type if available, otherwise use all
+            const filtered = components[type] || components.general || components;
+            if (filtered.length === 0) return '';
+
+            return filtered[Math.floor(Math.random() * filtered.length)];
         }
 
         // ==================== UTILITY FUNCTIONS ====================
-
-        function calculateSimilarity(str1, str2) {
-            const words1 = new Set(str1.toLowerCase().split(/\s+/));
-            const words2 = new Set(str2.toLowerCase().split(/\s+/));
-
-            const intersection = new Set([...words1].filter(x => words2.has(x)));
-            const union = new Set([...words1, ...words2]);
-
-            return intersection.size / union.size;
-        }
 
         function addMessage(text, sender) {
             const messageDiv = document.createElement('div');
