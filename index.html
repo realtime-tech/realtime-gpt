@@ -387,38 +387,63 @@
         let models = [];
         let dataset = [];
 
-        // ==================== UNIVERSAL AI SYSTEM ====================
+        // ==================== UNIFIED AI SYSTEM ====================
 
         async function generateAIResponse(input) {
             console.log("=== NEW INPUT:", input);
             const inputLower = input.toLowerCase().trim();
 
-            // 1. Exact match (for specific conversations)
-            const exactMatch = dataset.conversations?.find(conv =>
-                conv.input.toLowerCase().trim() === inputLower
+            // 1. First check for exact matches in dataset
+            const exactMatch = dataset.find(item =>
+                item.input && item.input.toLowerCase().trim() === inputLower
             );
             if (exactMatch) {
-                console.log("EXACT CONVERSATION MATCH");
+                console.log("EXACT MATCH - Type:", exactMatch.type);
                 return exactMatch.response;
             }
 
-            // 2. Build response from modular components
-            const response = buildModularResponse(input);
-            console.log("Modular response:", response);
-            return response;
+            // 2. Check for knowledge matches (partial matches)
+            const knowledgeMatch = findKnowledgeMatch(inputLower);
+            if (knowledgeMatch) {
+                console.log("KNOWLEDGE MATCH");
+                return knowledgeMatch;
+            }
+
+            // 3. Use modular system for everything else
+            console.log("USING MODULAR SYSTEM");
+            return buildModularResponse(input);
+        }
+
+        function findKnowledgeMatch(input) {
+            // Find all knowledge items
+            const knowledgeItems = dataset.filter(item => item.type === 'knowledge');
+
+            // Check for partial matches
+            for (const item of knowledgeItems) {
+                if (item.input && input.includes(item.input.toLowerCase())) {
+                    return item.response;
+                }
+            }
+
+            // Check simple math
+            const mathMatch = input.match(/(\d+)\s*\+\s*(\d+)/);
+            if (mathMatch) {
+                const result = parseInt(mathMatch[1]) + parseInt(mathMatch[2]);
+                return `${result}`;
+            }
+
+            return null;
         }
 
         function buildModularResponse(input) {
             const inputLower = input.toLowerCase();
-
-            // Analyze input to determine response type
             const responseType = analyzeInputType(inputLower);
-            console.log("Response type:", responseType);
+            console.log("Building modular response for type:", responseType);
 
-            // Get appropriate components (fallback to general if type not found)
-            const opener = getRandomComponent(dataset.openers, responseType) || getRandomComponent(dataset.openers, 'general');
-            const middle = getRandomComponent(dataset.middles, responseType) || getRandomComponent(dataset.middles, 'general');
-            const closer = getRandomComponent(dataset.closers, responseType) || getRandomComponent(dataset.closers, 'general');
+            // Get components from dataset
+            const opener = getRandomComponent('opener', responseType);
+            const middle = getRandomComponent('middle', responseType);
+            const closer = getRandomComponent('closer', responseType);
 
             // Build coherent response
             let response = opener;
@@ -460,11 +485,19 @@
             return 'general';
         }
 
-        function getRandomComponent(components, type) {
-            if (!components || !components[type] || components[type].length === 0) {
-                return null;
+        function getRandomComponent(componentType, responseType) {
+            const components = dataset.filter(item =>
+                item.type === componentType &&
+                (item.category === responseType || item.category === 'general')
+            );
+
+            if (components.length === 0) {
+                // Fallback to any component of this type
+                const fallback = dataset.filter(item => item.type === componentType);
+                return fallback.length > 0 ? fallback[Math.floor(Math.random() * fallback.length)].response : '';
             }
-            return components[type][Math.floor(Math.random() * components[type].length)];
+
+            return components[Math.floor(Math.random() * components.length)].response;
         }
 
         // ==================== UTILITY FUNCTIONS ====================
