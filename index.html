@@ -643,7 +643,10 @@
 
             return patterns;
         }
-
+        function adaptResponse(response, input) {
+            // Simple adaptation to make fallback responses feel more relevant
+            return response; // For now, just return as-is
+        }
         // Generate a response based on patterns and input
         function generateResponseFromPatterns(input, patterns) {
             const inputLower = input.toLowerCase();
