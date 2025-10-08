@@ -501,88 +501,92 @@
 
         // ==================== MODEL MANAGEMENT ====================
 
+        // ==================== MODEL MANAGEMENT ====================
+
         async function loadModels() {
             try {
-                // First, try to get a directory listing of the models folder
-                const modelsResponse = await fetch('models/');
-                if (!modelsResponse.ok) {
-                    throw new Error('Cannot access models directory');
-                }
+                // Array of model file paths we want to load
+                const modelFiles = [
+                    'models/rt-mini.json',
+                    'models/tech-support.json',
+                    'models/creative-writer.json'
+                    // Add more model file paths here as needed
+                ];
 
-                const modelsText = await modelsResponse.text();
+                console.log('Loading model files:', modelFiles);
 
-                // Parse the HTML directory listing to find JSON files
-                const parser = new DOMParser();
-                const htmlDoc = parser.parseFromString(modelsText, 'text/html');
-                const links = htmlDoc.querySelectorAll('a[href$=".json"]');
-
-                if (links.length === 0) {
-                    throw new Error('No JSON files found in models directory');
-                }
-
-                // Extract filenames from links
-                const modelFiles = Array.from(links).map(link => {
-                    const href = link.getAttribute('href');
-                    return href.startsWith('models/') ? href : `models/${href}`;
-                });
-
-                console.log('Found model files:', modelFiles);
-
-                // Load each model file
+                // Load each model file and extract the name
                 models = [];
-                for (const modelFile of modelFiles) {
+                for (const modelPath of modelFiles) {
                     try {
-                        const response = await fetch(modelFile);
+                        const response = await fetch(modelPath);
                         if (response.ok) {
                             const modelData = await response.json();
-                            // Each file should contain exactly one model object
-                            if (modelData.name && modelData.dataset) {
-                                models.push(modelData);
-                                console.log(`Loaded model: ${modelData.name}`);
-                            }
+                            // Store the model data with its file path for later loading
+                            models.push({
+                                ...modelData,
+                                filePath: modelPath
+                            });
+                            console.log(`✅ Found model: ${modelData.name}`);
+                        } else {
+                            console.warn(`⚠️ Could not load: ${modelPath}`);
                         }
                     } catch (error) {
-                        console.error(`Error loading model file ${modelFile}:`, error);
+                        console.error(`❌ Error loading ${modelPath}:`, error);
                     }
                 }
 
                 if (models.length === 0) {
-                    throw new Error('No valid models could be loaded from JSON files');
+                    throw new Error('No models could be loaded');
                 }
 
-                // Populate model dropdown
+                // Populate model dropdown with model names
                 modelDropdown.innerHTML = '';
                 models.forEach(model => {
                     const option = document.createElement('option');
-                    option.value = model.name;
+                    option.value = model.filePath; // Store file path as value
                     option.textContent = model.name;
                     modelDropdown.appendChild(option);
                 });
 
-                // Use the first model
-                currentModel = models[0];
-                dataset = currentModel.dataset || [];
+                // Load the first model's dataset
+                await loadSelectedModel();
 
-                addMessage(`Model "${currentModel.name}" loaded successfully. How can I help you today?`, 'ai');
             } catch (error) {
                 console.error('Error loading models:', error);
-                addMessage('Error loading models. Please check if the models directory exists and contains JSON files.', 'ai');
-
-                // Add a fallback option to the dropdown
+                addMessage('Error loading models. Please check if the model files exist.', 'ai');
                 modelDropdown.innerHTML = '<option value="">No models available</option>';
             }
         }
 
-        function loadSelectedModel() {
-            const selectedModelName = modelDropdown.value;
-            if (!selectedModelName) return;
+        async function loadSelectedModel() {
+            const selectedModelPath = modelDropdown.value;
+            if (!selectedModelPath) return;
 
-            currentModel = models.find(m => m.name === selectedModelName);
-            dataset = currentModel.dataset || [];
+            try {
+                // Find the selected model in our loaded models
+                const selectedModel = models.find(m => m.filePath === selectedModelPath);
 
-            // Clear chat and show model loaded message
-            chatMessages.innerHTML = '';
-            addMessage(`Model "${currentModel.name}" loaded successfully. How can I help you today?`, 'ai');
+                if (selectedModel) {
+                    // If we already have the dataset from initial load, use it
+                    currentModel = selectedModel;
+                    dataset = currentModel.dataset || [];
+                } else {
+                    // Otherwise load the dataset fresh
+                    const response = await fetch(selectedModelPath);
+                    const modelData = await response.json();
+                    currentModel = modelData;
+                    dataset = currentModel.dataset || [];
+                }
+
+                // Clear chat and show model loaded message
+                chatMessages.innerHTML = '';
+                addMessage(`Model "${currentModel.name}" loaded successfully. How can I help you today?`, 'ai');
+
+            } catch (error) {
+                console.error('Error loading selected model:', error);
+                addMessage(`Error loading model. Please try again.`, 'ai');
+            }
         }
 
         // ==================== EVENT HANDLERS ====================
