@@ -1,1 +1,89 @@
-
+{
+  "name": "RT-mini",
+  "dataset": [
+    {
+      "input": "hello",
+      "response": "Hello! How can I help you today?"
+    },
+    {
+      "input": "hi",
+      "response": "Hi there! What's up?"
+    },
+    {
+      "input": "hey",
+      "response": "Hey! How's it going?"
+    },
+    {
+      "input": "whats 2+2",
+      "response": "2+2 equals 4"
+    },
+    {
+      "input": "what is 2+2",
+      "response": "The answer is 4"
+    },
+    {
+      "input": "2+2",
+      "response": "4"
+    },
+    {
+      "input": "capital of france",
+      "response": "Paris"
+    },
+    {
+      "input": "whats the capital of france",
+      "response": "The capital of France is Paris"
+    },
+    {
+      "input": "im sad",
+      "response": "I'm sorry you're feeling sad. Want to talk about it?"
+    },
+    {
+      "input": "im feeling sad",
+      "response": "That sounds tough. I'm here to listen if you want to share."
+    },
+    {
+      "input": "im overwhelmed",
+      "response": "Feeling overwhelmed is really challenging. What's been going on?"
+    },
+    {
+      "input": "im stressed",
+      "response": "Stress can be really difficult to manage. Want to talk about what's causing it?"
+    },
+    {
+      "input": "whats the meaning of life",
+      "response": "That's a deep question! Many people find meaning in relationships, purpose, personal growth, or helping others. What do you think gives life meaning?"
+    },
+    {
+      "input": "meaning of life",
+      "response": "People find meaning in different ways - through love, work, creativity, spirituality, or making a difference. What feels meaningful to you?"
+    },
+    {
+      "input": "how are you",
+      "response": "I'm doing well, thanks for asking! How are you?"
+    },
+    {
+      "input": "what are you",
+      "response": "I'm RT-mini, an AI assistant designed to have helpful conversations!"
+    },
+    {
+      "input": "tell me a joke",
+      "response": "Why don't scientists trust atoms? Because they make up everything!"
+    },
+    {
+      "input": "good morning",
+      "response": "Good morning! How are you today?"
+    },
+    {
+      "input": "good night",
+      "response": "Good night! Sleep well!"
+    },
+    {
+      "input": "thank you",
+      "response": "You're welcome!"
+    },
+    {
+      "input": "thanks",
+      "response": "No problem!"
+    }
+  ]
+}
