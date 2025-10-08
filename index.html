@@ -475,13 +475,16 @@
         }
 
         function analyzeInputType(input) {
-            if (input.match(/\b(hi|hello|hey|greetings|what's up|yo|sup)\b/)) return 'greeting';
-            if (input.match(/\b(how are you|how do you feel|how's it going|you okay)\b/)) return 'emotional';
-            if (input.match(/\b(what|why|how|when|where|who|explain|tell me about)\b/)) return 'question';
-            if (input.match(/\b(sad|happy|angry|excited|bored|tired|anxious|depressed|feel)\b/)) return 'emotional';
-            if (input.match(/\b(thanks|thank you|appreciate|grateful)\b/)) return 'gratitude';
-            if (input.match(/\b(bye|goodbye|see you|later|farewell)\b/)) return 'farewell';
-            if (input.match(/\b(help|assist|support|advice|suggest)\b/)) return 'help';
+            // Convert to lowercase and remove punctuation for better matching
+            const cleanInput = input.toLowerCase().replace(/[^\w\s]/g, '');
+
+            if (cleanInput.match(/\b(hi|hello|hey|greetings|whats up|yo|sup|good morning|good afternoon)\b/)) return 'greeting';
+            if (cleanInput.match(/\b(how are you|how do you feel|hows it going|you okay|you good)\b/)) return 'emotional';
+            if (cleanInput.match(/\b(what|why|how|when|where|who|explain|tell me about|meaning of|purpose of)\b/)) return 'question';
+            if (cleanInput.match(/\b(sad|happy|angry|excited|bored|tired|anxious|depressed|feel|feeling|overwhelmed|stressed|worried|nervous)\b/)) return 'emotional';
+            if (cleanInput.match(/\b(thanks|thank you|appreciate|grateful|thankyou)\b/)) return 'gratitude';
+            if (cleanInput.match(/\b(bye|goodbye|see you|later|farewell|good night)\b/)) return 'farewell';
+            if (cleanInput.match(/\b(help|assist|support|advice|suggest|guidance)\b/)) return 'help';
             return 'general';
         }
 
