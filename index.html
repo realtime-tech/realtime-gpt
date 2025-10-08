@@ -387,37 +387,67 @@
         let currentModel = null;
         let models = [];
         let dataset = [];
+
+        // ==================== CORE AI FUNCTIONS ====================
+
+        async function generateAIResponse(input) {
+            console.log("=== NEW INPUT:", input);
+            const inputLower = input.toLowerCase().trim();
+
+            // 1. Exact match
+            const exactMatch = dataset.find(example => example.input.toLowerCase().trim() === inputLower);
+            if (exactMatch) {
+                console.log("EXACT MATCH USED");
+                return exactMatch.response;
+            }
+
+            // 2. Similarity search
+            const similarities = dataset.map(example => ({
+                example,
+                similarity: calculateSimilarity(inputLower, example.input.toLowerCase())
+            }));
+
+            similarities.sort((a, b) => b.similarity - a.similarity);
+
+            // Use flexible similarity threshold
+            const topSimilarity = similarities[0]?.similarity || 0;
+            const topExamples = similarities.slice(0, 5).filter(item =>
+                item.similarity > Math.max(0.08, topSimilarity * 0.8)
+            );
+
+            console.log("Top examples found:", topExamples.length, "Best similarity:", topSimilarity);
+
+            // 3. Pattern generation
+            if (topExamples.length > 0) {
+                console.log("ATTEMPTING PATTERN GENERATION");
+                const generated = await generateFromPatterns(input, topExamples.map(t => t.example));
+                console.log("Generated response:", generated);
+                return generated;
+            }
+
+            // 4. Fallback to exact dataset response
+            console.log("FALLING BACK TO DATASET");
+            const randomExample = dataset[Math.floor(Math.random() * dataset.length)];
+            return randomExample.response;
+        }
+
         function generateFromPatterns(input, examples) {
             console.log("Generating from patterns with", examples.length, "examples");
 
-            // Extract response patterns from similar examples
+            // Extract patterns from examples
             const responses = examples.map(e => e.response);
-
-            // Analyze openings
             const commonOpenings = responses.map(r => {
                 const firstSentence = r.split(/[.!?]+/)[0];
                 return firstSentence.split(' ').slice(0, 4).join(' ');
             });
 
-            // Analyze themes
-            const commonThemes = responses.map(r =>
-                r.includes('magic') || r.includes('dream') || r.includes('realm') ? 'mythical' :
-                    r.includes('feel') || r.includes('emotion') || r.includes('soul') ? 'emotional' :
-                        'conversational'
-            );
-
-            // Choose patterns
             const randomOpening = commonOpenings[Math.floor(Math.random() * commonOpenings.length)];
-            const theme = commonThemes[Math.floor(Math.random() * commonThemes.length)];
+            console.log("Using opening:", randomOpening);
 
-            console.log("Using opening:", randomOpening, "Theme:", theme);
-
-            // PASS THE EXAMPLES PARAMETER!
-            return craftNewResponse(input, randomOpening, theme, examples);
+            return craftNewResponse(input, randomOpening, examples);
         }
 
-        // Simple grammar-aware adaptation using free API
-        async function craftNewResponse(input, opening, theme, examples) {
+        function craftNewResponse(input, opening, examples) {
             try {
                 const mostSimilar = examples[0];
                 if (!mostSimilar) return "Let's explore this further.";
@@ -429,22 +459,21 @@
                     return originalResponse;
                 }
 
-                // Simple but smart adaptation without external libraries
-                const adaptedResponse = await smartWordReplacement(originalResponse, inputWords);
-
+                // Smart word replacement
+                const adaptedResponse = smartWordReplacement(originalResponse, inputWords);
                 console.log("Smart adaptation:", originalResponse, "→", adaptedResponse);
                 return adaptedResponse;
 
             } catch (error) {
-                console.error("Error in smart generation:", error);
+                console.error("Error in generation:", error);
                 return examples[0]?.response || "Let's continue our conversation.";
             }
         }
 
-        async function smartWordReplacement(original, inputWords) {
+        function smartWordReplacement(original, inputWords) {
             const words = original.split(/\s+/);
 
-            // Identify likely content words (long words that aren't common structure words)
+            // Identify content words (long words that aren't common structure words)
             const commonWords = new Set(['the', 'and', 'but', 'for', 'with', 'this', 'that', 'what', 'how', 'when', 'where', 'your', 'my', 'our', 'have', 'has', 'are', 'were']);
 
             const contentWordPositions = [];
@@ -471,9 +500,39 @@
             return original;
         }
 
-        // Remove any WinkJS initialization and just use this
+        // ==================== UTILITY FUNCTIONS ====================
+
+        function calculateSimilarity(str1, str2) {
+            const words1 = new Set(str1.toLowerCase().split(/\s+/));
+            const words2 = new Set(str2.toLowerCase().split(/\s+/));
+
+            const intersection = new Set([...words1].filter(x => words2.has(x)));
+            const union = new Set([...words1, ...words2]);
+
+            return intersection.size / union.size;
+        }
+
+        function addMessage(text, sender) {
+            const messageDiv = document.createElement('div');
+            messageDiv.classList.add('message');
+            messageDiv.classList.add(sender === 'user' ? 'user-message' : 'ai-message');
+            messageDiv.textContent = text;
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function showTypingIndicator() {
+            typingIndicator.style.display = 'block';
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function hideTypingIndicator() {
+            typingIndicator.style.display = 'none';
+        }
+
+        // ==================== MODEL MANAGEMENT ====================
+
         async function loadModels() {
-            // Your existing model loading code - NO NLP INIT NEEDED
             try {
                 const response = await fetch('data.json');
                 const data = await response.json();
@@ -488,28 +547,7 @@
                 addMessage('Error loading model. Please check if data.json exists.', 'ai');
             }
         }
-        // Helper function to classify words by their role
-        function classifyWordType(word, position, totalLength) {
-            const smallWords = ['the', 'a', 'in', 'on', 'at', 'to', 'for', 'with', 'your', 'my', 'our'];
-            if (smallWords.includes(word.toLowerCase())) return 'structure';
-            if (position === 0) return 'start';
-            if (position === totalLength - 1) return 'end';
-            return 'content';
-        }
 
-        // Helper function to find similar words in dataset
-        function getSimilarWords(targetWord, examples) {
-            const allWords = [...new Set(examples.flatMap(e =>
-                e.response.split(/\s+/).filter(w => w.length > 3)
-            ))];
-            return allWords.filter(word =>
-                word !== targetWord &&
-                word.length === targetWord.length && // Similar length words often serve similar roles
-                word.charAt(0) === targetWord.charAt(0) // Same starting letter often indicates similar type
-            );
-        }
-
-        // Load the selected model
         function loadSelectedModel() {
             const selectedModelName = modelDropdown.value;
             if (!selectedModelName) return;
@@ -522,306 +560,9 @@
             addMessage(`Model "${currentModel.name}" loaded successfully. How can I assist you today?`, 'ai');
         }
 
-        // Add a message to the chat
-        function addMessage(text, sender) {
-            const messageDiv = document.createElement('div');
-            messageDiv.classList.add('message');
-            messageDiv.classList.add(sender === 'user' ? 'user-message' : 'ai-message');
-            messageDiv.textContent = text;
-            chatMessages.appendChild(messageDiv);
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-        }
+        // ==================== EVENT HANDLERS ====================
 
-        // Show typing indicator
-        function showTypingIndicator() {
-            typingIndicator.style.display = 'block';
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-        }
-
-        // Hide typing indicator
-        function hideTypingIndicator() {
-            typingIndicator.style.display = 'none';
-        }
-
-        // Calculate similarity between two strings
-        function calculateSimilarity(str1, str2) {
-            const words1 = new Set(str1.toLowerCase().split(/\s+/));
-            const words2 = new Set(str2.toLowerCase().split(/\s+/));
-
-            const intersection = new Set([...words1].filter(x => words2.has(x)));
-            const union = new Set([...words1, ...words2]);
-
-            return intersection.size / union.size;
-        }
-
-        function generateAIResponse(input) {
-            console.log("=== NEW INPUT:", input);
-            const inputLower = input.toLowerCase().trim();
-
-            // 1. Exact match
-            const exactMatch = dataset.find(example =>
-                example.input.toLowerCase().trim() === inputLower
-            );
-            if (exactMatch) {
-                console.log("EXACT MATCH USED");
-                return exactMatch.response;
-            }
-
-            // 2. Similarity search
-            const similarities = dataset.map(example => ({
-                example,
-                similarity: calculateSimilarity(inputLower, example.input.toLowerCase())
-            }));
-
-            similarities.sort((a, b) => b.similarity - a.similarity);
-
-            // Use the top similarity score but require at least some relevance
-            const topSimilarity = similarities[0]?.similarity || 0;
-            const topExamples = similarities.slice(0, 5).filter(item =>
-                item.similarity > Math.max(0.08, topSimilarity * 0.8)
-            );
-
-            console.log("Top examples found:", topExamples.length);
-            console.log("Best similarity:", topSimilarity);
-
-            // 3. Pattern generation
-            if (topExamples.length > 0) {
-                console.log("ATTEMPTING PATTERN GENERATION");
-                const generated = generateFromPatterns(input, topExamples.map(t => t.example));
-                console.log("Generated response:", generated);
-                return generated;
-            }
-
-            // 4. Fallback
-            console.log("FALLING BACK TO GENERIC");
-            const randomExample = dataset[Math.floor(Math.random() * dataset.length)];
-            return adaptResponse(randomExample.response, input);
-        }
-
-        // Analyze response patterns from example responses
-        function analyzeResponsePatterns(responses) {
-            const patterns = {
-                greetings: [],
-                questions: [],
-                statements: [],
-                emotions: [],
-                structures: []
-            };
-
-            responses.forEach(response => {
-                // Check for greeting patterns
-                if (response.match(/\b(hi|hello|hey|greetings|welcome)\b/i)) {
-                    patterns.greetings.push(response);
-                }
-
-                // Check for question patterns
-                if (response.includes('?') || response.match(/\b(what|how|why|when|where|who)\b/i)) {
-                    patterns.questions.push(response);
-                }
-
-                // Check for emotional content
-                if (response.match(/\b(great|good|nice|wonderful|amazing|happy|excited|sorry|sad)\b/i)) {
-                    patterns.emotions.push(response);
-                }
-
-                // Analyze sentence structure
-                const sentences = response.split(/[.!?]+/).filter(s => s.trim().length > 0);
-                patterns.structures.push({
-                    sentenceCount: sentences.length,
-                    avgLength: response.length / Math.max(sentences.length, 1),
-                    hasQuestions: response.includes('?')
-                });
-            });
-
-            return patterns;
-        }
-        function adaptResponse(response, input) {
-            // Simple adaptation to make fallback responses feel more relevant
-            return response; // For now, just return as-is
-        }
-        // Generate a response based on patterns and input
-        function generateResponseFromPatterns(input, patterns) {
-            const inputLower = input.toLowerCase();
-
-            // Determine response type based on input
-            let responseType = 'statement';
-            if (inputLower.match(/\b(hi|hello|hey|greetings)\b/)) {
-                responseType = 'greeting';
-            } else if (inputLower.includes('?')) {
-                responseType = 'answer';
-            } else if (inputLower.match(/\b(how are you|how do you feel)\b/)) {
-                responseType = 'emotional';
-            }
-
-            // Build response based on type
-            let response = '';
-
-            switch (responseType) {
-                case 'greeting':
-                    response = generateGreetingResponse(patterns);
-                    break;
-                case 'answer':
-                    response = generateAnswerResponse(input, patterns);
-                    break;
-                case 'emotional':
-                    response = generateEmotionalResponse(patterns);
-                    break;
-                default:
-                    response = generateStatementResponse(input, patterns);
-            }
-
-            // Ensure the response is not empty
-            if (!response || response.trim().length === 0) {
-                response = generateFallbackResponse(input);
-            }
-
-            return response;
-        }
-
-        // Generate a greeting response
-        function generateGreetingResponse(patterns) {
-            const greetings = [
-                "Hello there! How can I assist you today?",
-                "Hi! It's great to connect with you. What's on your mind?",
-                "Greetings! I'm here and ready to help. What would you like to talk about?",
-                "Hey! Thanks for reaching out. How can I be of service?"
-            ];
-
-            // If we have greeting patterns, try to create a more personalized greeting
-            if (patterns.greetings.length > 0) {
-                const randomGreeting = patterns.greetings[Math.floor(Math.random() * patterns.greetings.length)];
-                const words = randomGreeting.split(' ');
-
-                // Extract the greeting part (usually first 2-4 words)
-                const greetingPart = words.slice(0, Math.min(4, words.length)).join(' ');
-
-                // Create variations
-                const variations = [
-                    `${greetingPart}! What brings you here today?`,
-                    `${greetingPart}. How can I help you?`,
-                    `${greetingPart}. It's wonderful to connect with you.`
-                ];
-
-                return variations[Math.floor(Math.random() * variations.length)];
-            }
-
-            return greetings[Math.floor(Math.random() * greetings.length)];
-        }
-
-        // Generate an answer to a question
-        function generateAnswerResponse(input, patterns) {
-            // Extract the question word
-            const questionWords = ['what', 'how', 'why', 'when', 'where', 'who'];
-            let questionWord = 'what';
-
-            for (const word of questionWords) {
-                if (input.toLowerCase().includes(word)) {
-                    questionWord = word;
-                    break;
-                }
-            }
-
-            // Create a thoughtful response based on the question type
-            const responses = {
-                what: [
-                    "That's an interesting question. From my understanding, ",
-                    "I've been thinking about that too. In my perspective, ",
-                    "That's a great question. Based on what I know, "
-                ],
-                how: [
-                    "Let me share my thoughts on how that works. ",
-                    "The process typically involves ",
-                    "From my experience, here's how it usually goes: "
-                ],
-                why: [
-                    "There are several reasons for that. Primarily, ",
-                    "That's because ",
-                    "The main reason is "
-                ],
-                when: [
-                    "Timing can vary, but generally ",
-                    "Based on patterns I've observed, ",
-                    "It typically happens when "
-                ],
-                where: [
-                    "Location can be important here. Usually, ",
-                    "Based on my knowledge, ",
-                    "That tends to occur where "
-                ],
-                who: [
-                    "There are several perspectives on who might be involved. ",
-                    "Based on my understanding, ",
-                    "That would typically involve "
-                ]
-            };
-
-            const intro = responses[questionWord][Math.floor(Math.random() * responses[questionWord].length)];
-
-            // Add a thoughtful continuation
-            const continuations = [
-                "it relates to the broader context of our conversation.",
-                "there are multiple factors to consider in situations like this.",
-                "your question touches on an important aspect worth exploring further."
-            ];
-
-            return intro + continuations[Math.floor(Math.random() * continuations.length)];
-        }
-
-        // Generate an emotional response
-        function generateEmotionalResponse(patterns) {
-            const emotionalStates = [
-                "I'm functioning well, thank you for asking! How are you feeling today?",
-                "I'm doing great! Always ready for a good conversation. How about you?",
-                "I'm in a positive state, ready to assist. How's everything with you?",
-                "I'm feeling quite good today! Thanks for checking in. How are you?"
-            ];
-
-            return emotionalStates[Math.floor(Math.random() * emotionalStates.length)];
-        }
-
-        // Generate a statement response
-        function generateStatementResponse(input, patterns) {
-            // Create a response that acknowledges the input and continues the conversation
-            const acknowledgments = [
-                "I see what you're saying about ",
-                "That's an interesting point about ",
-                "I understand your perspective on ",
-                "Thanks for sharing that about "
-            ];
-
-            const acknowledgment = acknowledgments[Math.floor(Math.random() * acknowledgments.length)];
-
-            // Extract key topic from input (simple approach - take first few words)
-            const words = input.split(' ').slice(0, 3).join(' ');
-
-            // Continue the thought
-            const continuations = [
-                ". Could you tell me more about that?",
-                ". What are your thoughts on this?",
-                ". How does that relate to your experiences?",
-                ". I'd love to hear more about your perspective."
-            ];
-
-            const continuation = continuations[Math.floor(Math.random() * continuations.length)];
-
-            return acknowledgment + words + continuation;
-        }
-
-        // Generate a fallback response
-        function generateFallbackResponse(input) {
-            const fallbacks = [
-                "That's an interesting point. Could you tell me more about that?",
-                "I'm not sure I fully understand. Could you rephrase that?",
-                "That's something worth exploring further. What are your thoughts on it?",
-                "I see what you're saying. Let me think about that for a moment.",
-                "That's a fascinating perspective. How did you come to that conclusion?"
-            ];
-
-            return fallbacks[Math.floor(Math.random() * fallbacks.length)];
-        }
-
-        // Handle sending a message
-        function sendMessage() {
+        async function sendMessage() {
             const message = chatInput.value.trim();
             if (!message) return;
 
@@ -832,19 +573,21 @@
             // Show typing indicator
             showTypingIndicator();
 
-            // Generate AI response after a delay to simulate thinking
-            setTimeout(() => {
+            // Generate AI response
+            setTimeout(async () => {
                 hideTypingIndicator();
 
                 if (!currentModel) {
-                    addMessage("Please select a model first.", 'ai');
+                    addMessage("Please wait while the model loads...", 'ai');
                     return;
                 }
 
-                const response = generateAIResponse(message);
+                const response = await generateAIResponse(message);
                 addMessage(response, 'ai');
             }, 1000 + Math.random() * 1000);
         }
+
+        // ==================== INITIALIZATION ====================
 
         // Event listeners
         sendButton.addEventListener('click', sendMessage);
@@ -855,9 +598,6 @@
                 sendMessage();
             }
         });
-
-        // Model dropdown change
-        modelDropdown.addEventListener('change', loadSelectedModel);
 
         // Auto-resize textarea
         chatInput.addEventListener('input', function () {
