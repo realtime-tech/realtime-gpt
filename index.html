@@ -361,7 +361,7 @@
     </div>
 
     <script>
-        // Create floating background elements
+        // ================ FLOATING BACKGROUND ELEMENTS ================
         const floatingElements = document.getElementById('floatingElements');
         for (let i = 0; i < 15; i++) {
             const element = document.createElement('div');
@@ -375,34 +375,49 @@
             floatingElements.appendChild(element);
         }
 
-        // DOM elements
+        // ================ DOM ELEMENTS ================
         const chatMessages = document.getElementById('chatMessages');
         const chatInput = document.getElementById('chatInput');
         const sendButton = document.getElementById('sendButton');
         const typingIndicator = document.getElementById('typingIndicator');
         const modelDropdown = document.getElementById('modelDropdown');
 
-        // Application state
+        // ================ APP STATE ================
         let currentModel = null;
         let models = [];
         let dataset = [];
 
-        // ==================== IMPROVED AI SYSTEM ====================
+        // ================ AES DECRYPTION FUNCTION ================
+        async function decryptJSON(encryptedObj, keyHex) {
+            const key = new Uint8Array(keyHex.match(/.{2}/g).map(b => parseInt(b, 16)));
+            const iv = Uint8Array.from(atob(encryptedObj.iv), c => c.charCodeAt(0));
+            const encryptedData = Uint8Array.from(atob(encryptedObj.data), c => c.charCodeAt(0));
 
+            const cryptoKey = await crypto.subtle.importKey(
+                "raw", key, { name: "AES-CBC" }, false, ["decrypt"]
+            );
+
+            const decrypted = await crypto.subtle.decrypt(
+                { name: "AES-CBC", iv },
+                cryptoKey,
+                encryptedData
+            );
+
+            return JSON.parse(new TextDecoder().decode(decrypted));
+        }
+
+        // ================ AI RESPONSE SYSTEM ================
         async function generateAIResponse(input) {
             console.log("=== NEW INPUT:", input);
             const inputLower = input.toLowerCase().trim();
 
-            // 1. Exact match
+            // Exact match
             const exactMatch = dataset.find(item =>
                 item.input.toLowerCase().trim() === inputLower
             );
-            if (exactMatch) {
-                console.log("EXACT MATCH");
-                return exactMatch.response;
-            }
+            if (exactMatch) return exactMatch.response;
 
-            // 2. Similarity matching with better calculation
+            // Similarity matching
             const similarities = dataset.map(item => ({
                 item,
                 similarity: calculateSimilarity(inputLower, item.input.toLowerCase())
@@ -410,21 +425,9 @@
 
             similarities.sort((a, b) => b.similarity - a.similarity);
 
-            const topSimilarity = similarities[0]?.similarity || 0;
             const topMatches = similarities.slice(0, 3).filter(item => item.similarity > 0.4);
+            if (topMatches.length > 0) return topMatches[0].item.response;
 
-            console.log("Best similarity:", topSimilarity, "Top matches:", topMatches.length);
-            if (topMatches.length > 0) {
-                console.log("Top match input:", topMatches[0].item.input, "Similarity:", topMatches[0].similarity);
-            }
-
-            if (topMatches.length > 0) {
-                console.log("USING SIMILARITY MATCH");
-                return topMatches[0].item.response;
-            }
-
-            // 3. Smart fallback instead of random
-            console.log("FALLBACK TO GENERIC");
             return getGenericFallback(input);
         }
 
@@ -434,18 +437,15 @@
 
             const words1 = new Set(cleanStr1.split(/\s+/).filter(w => w.length > 2));
             const words2 = new Set(cleanStr2.split(/\s+/).filter(w => w.length > 2));
-
             if (words1.size === 0 || words2.size === 0) return 0;
 
             const intersection = new Set([...words1].filter(x => words2.has(x)));
             const union = new Set([...words1, ...words2]);
-
             return intersection.size / union.size;
         }
 
         function getGenericFallback(input) {
             const inputLower = input.toLowerCase();
-
             if (inputLower.match(/\b(what|why|how|when|where|who|explain)\b/)) {
                 const questionFallbacks = [
                     "That's an interesting question, but I don't have enough information about that specific topic.",
@@ -455,7 +455,6 @@
                 ];
                 return questionFallbacks[Math.floor(Math.random() * questionFallbacks.length)];
             }
-
             if (inputLower.match(/\b(sad|happy|angry|excited|bored|tired|anxious|depressed|feel)\b/)) {
                 const emotionalFallbacks = [
                     "I hear you. Want to talk more about what you're experiencing?",
@@ -465,7 +464,6 @@
                 ];
                 return emotionalFallbacks[Math.floor(Math.random() * emotionalFallbacks.length)];
             }
-
             const generalFallbacks = [
                 "I'm not sure how to respond to that. Could you try asking something else?",
                 "That's an interesting thing to bring up! What else would you like to talk about?",
@@ -475,8 +473,7 @@
             return generalFallbacks[Math.floor(Math.random() * generalFallbacks.length)];
         }
 
-        // ==================== UTILITY FUNCTIONS ====================
-
+        // ================ UTILITY FUNCTIONS ================
         function addMessage(text, sender) {
             const messageDiv = document.createElement('div');
             messageDiv.classList.add('message');
@@ -485,41 +482,28 @@
             chatMessages.appendChild(messageDiv);
             chatMessages.scrollTop = chatMessages.scrollHeight;
         }
+        function showTypingIndicator() { typingIndicator.style.display = 'block'; chatMessages.scrollTop = chatMessages.scrollHeight; }
+        function hideTypingIndicator() { typingIndicator.style.display = 'none'; }
 
-        function showTypingIndicator() {
-            typingIndicator.style.display = 'block';
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-        }
-
-        function hideTypingIndicator() {
-            typingIndicator.style.display = 'none';
-        }
-
-        // ==================== MODEL MANAGEMENT ====================
-
+        // ================ MODEL MANAGEMENT ================
         async function loadModels() {
             try {
-                // List of model files we know exist in the models folder
-                const modelFiles = [
-                    'RT-mini.json'
-                ];
-
-                console.log('Loading model files:', modelFiles);
-
-                // Load each model file
+                const response = await fetch('models/');
+                const modelFiles = ['RT-mini.enc']; // add all your .enc files manually or automate
                 models = [];
-                for (const modelFile of modelFiles) {
+
+                for (const file of modelFiles) {
                     try {
-                        const response = await fetch(`models/${modelFile}`);
-                        if (response.ok) {
-                            const modelData = await response.json();
-                            if (modelData.name && modelData.dataset) {
-                                models.push(modelData);
-                                console.log(`✅ Loaded: ${modelData.name}`);
-                            }
+                        const res = await fetch(`models/${file}`);
+                        if (!res.ok) continue;
+                        const encryptedData = await res.json();
+                        const modelData = await decryptJSON(encryptedData, 'YOUR_KEY_HEX_HERE');
+                        if (modelData.name && modelData.dataset) {
+                            models.push(modelData);
+                            console.log(`✅ Loaded: ${modelData.name}`);
                         }
-                    } catch (error) {
-                        console.error(`Error loading ${modelFile}:`, error);
+                    } catch (e) {
+                        console.error(`Error loading ${file}:`, e);
                     }
                 }
 
@@ -534,7 +518,6 @@
                     modelDropdown.appendChild(option);
                 });
 
-                // Load the first model
                 currentModel = models[0];
                 dataset = currentModel.dataset || [];
                 addMessage(`Model "${currentModel.name}" loaded successfully. How can I help you today?`, 'ai');
@@ -552,61 +535,39 @@
 
             currentModel = models.find(m => m.name === selectedModelName);
             dataset = currentModel.dataset || [];
-
-            // Clear chat and show model loaded message
             chatMessages.innerHTML = '';
             addMessage(`Model "${currentModel.name}" loaded successfully. How can I help you today?`, 'ai');
         }
 
-        // ==================== EVENT HANDLERS ====================
-
+        // ================ EVENT HANDLERS ================
         async function sendMessage() {
             const message = chatInput.value.trim();
             if (!message) return;
-
-            // Add user message
             addMessage(message, 'user');
             chatInput.value = '';
-
-            // Show typing indicator
             showTypingIndicator();
-
-            // Generate AI response
             setTimeout(async () => {
                 hideTypingIndicator();
-
                 if (!currentModel) {
                     addMessage("Please wait while the model loads...", 'ai');
                     return;
                 }
-
                 const response = await generateAIResponse(message);
                 addMessage(response, 'ai');
             }, 1000 + Math.random() * 1000);
         }
 
-        // ==================== INITIALIZATION ====================
-
-        // Event listeners
+        // ================ INITIALIZATION ================
         sendButton.addEventListener('click', sendMessage);
         modelDropdown.addEventListener('change', loadSelectedModel);
-
         chatInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                sendMessage();
-            }
+            if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
         });
+        chatInput.addEventListener('input', function () { this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'; });
 
-        // Auto-resize textarea
-        chatInput.addEventListener('input', function () {
-            this.style.height = 'auto';
-            this.style.height = (this.scrollHeight) + 'px';
-        });
-
-        // Initialize the application
         loadModels();
     </script>
+
 </body>
 
 </html>
