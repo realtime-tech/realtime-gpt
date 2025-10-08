@@ -387,7 +387,7 @@
         let models = [];
         let dataset = [];
 
-        // ==================== NEW MODULAR AI SYSTEM ====================
+        // ==================== UNIVERSAL AI SYSTEM ====================
 
         async function generateAIResponse(input) {
             console.log("=== NEW INPUT:", input);
@@ -403,31 +403,33 @@
             }
 
             // 2. Build response from modular components
-            const response = await buildModularResponse(input);
+            const response = buildModularResponse(input);
             console.log("Modular response:", response);
             return response;
         }
 
-        async function buildModularResponse(input) {
+        function buildModularResponse(input) {
             const inputLower = input.toLowerCase();
 
             // Analyze input to determine response type
             const responseType = analyzeInputType(inputLower);
             console.log("Response type:", responseType);
 
-            // Get appropriate components
-            const opener = getRandomComponent(dataset.openers, responseType);
-            const middle = getRandomComponent(dataset.middles, responseType);
-            const closer = getRandomComponent(dataset.closers, responseType);
+            // Get appropriate components (fallback to general if type not found)
+            const opener = getRandomComponent(dataset.openers, responseType) || getRandomComponent(dataset.openers, 'general');
+            const middle = getRandomComponent(dataset.middles, responseType) || getRandomComponent(dataset.middles, 'general');
+            const closer = getRandomComponent(dataset.closers, responseType) || getRandomComponent(dataset.closers, 'general');
 
             // Build coherent response
             let response = opener;
 
             // Add middle with proper transition
-            if (middle && !opener.endsWith('!') && !opener.endsWith('?')) {
-                response += " " + middle.toLowerCase();
-            } else if (middle) {
-                response += " " + middle;
+            if (middle) {
+                if (!opener.endsWith('!') && !opener.endsWith('?')) {
+                    response += " " + middle.toLowerCase();
+                } else {
+                    response += " " + middle;
+                }
             }
 
             // Add closer with proper punctuation
@@ -448,23 +450,21 @@
         }
 
         function analyzeInputType(input) {
-            if (input.match(/\b(hi|hello|hey|greetings|what's up|yo)\b/)) return 'greeting';
-            if (input.match(/\b(how are you|how do you feel|how's it going)\b/)) return 'emotional';
-            if (input.match(/\b(what|why|how|when|where|who)\b/)) return 'question';
-            if (input.match(/\b(dream|sleep|night|vision)\b/)) return 'dream';
-            if (input.match(/\b(magic|spell|wizard|witch|enchant)\b/)) return 'magic';
-            if (input.match(/\b(star|moon|sky|cosmic|universe)\b/)) return 'cosmic';
+            if (input.match(/\b(hi|hello|hey|greetings|what's up|yo|sup)\b/)) return 'greeting';
+            if (input.match(/\b(how are you|how do you feel|how's it going|you okay)\b/)) return 'emotional';
+            if (input.match(/\b(what|why|how|when|where|who|explain|tell me about)\b/)) return 'question';
+            if (input.match(/\b(sad|happy|angry|excited|bored|tired|anxious|depressed|feel)\b/)) return 'emotional';
+            if (input.match(/\b(thanks|thank you|appreciate|grateful)\b/)) return 'gratitude';
+            if (input.match(/\b(bye|goodbye|see you|later|farewell)\b/)) return 'farewell';
+            if (input.match(/\b(help|assist|support|advice|suggest)\b/)) return 'help';
             return 'general';
         }
 
         function getRandomComponent(components, type) {
-            if (!components) return '';
-
-            // Filter by type if available, otherwise use all
-            const filtered = components[type] || components.general || components;
-            if (filtered.length === 0) return '';
-
-            return filtered[Math.floor(Math.random() * filtered.length)];
+            if (!components || !components[type] || components[type].length === 0) {
+                return null;
+            }
+            return components[type][Math.floor(Math.random() * components[type].length)];
         }
 
         // ==================== UTILITY FUNCTIONS ====================
@@ -510,7 +510,7 @@
                 currentModel = data.models[0];
                 dataset = currentModel.dataset;
 
-                addMessage(`Model "${currentModel.name}" loaded successfully. How can I assist you today?`, 'ai');
+                addMessage(`Model "${currentModel.name}" loaded successfully. How can I help you today?`, 'ai');
             } catch (error) {
                 console.error('Error loading model:', error);
                 addMessage('Error loading model. Please check if data.json exists.', 'ai');
@@ -526,7 +526,7 @@
 
             // Clear chat and show model loaded message
             chatMessages.innerHTML = '';
-            addMessage(`Model "${currentModel.name}" loaded successfully. How can I assist you today?`, 'ai');
+            addMessage(`Model "${currentModel.name}" loaded successfully. How can I help you today?`, 'ai');
         }
 
         // ==================== EVENT HANDLERS ====================
