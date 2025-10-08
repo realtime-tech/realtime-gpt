@@ -387,120 +387,53 @@
         let models = [];
         let dataset = [];
 
-        // ==================== UNIFIED AI SYSTEM ====================
+        // ==================== LEGACY AI SYSTEM ====================
 
         async function generateAIResponse(input) {
             console.log("=== NEW INPUT:", input);
             const inputLower = input.toLowerCase().trim();
 
-            // 1. First check for exact matches in dataset
+            // 1. Exact match
             const exactMatch = dataset.find(item =>
-                item.input && item.input.toLowerCase().trim() === inputLower
+                item.input.toLowerCase().trim() === inputLower
             );
             if (exactMatch) {
-                console.log("EXACT MATCH - Type:", exactMatch.type);
+                console.log("EXACT MATCH");
                 return exactMatch.response;
             }
 
-            // 2. Check for knowledge matches (partial matches)
-            const knowledgeMatch = findKnowledgeMatch(inputLower);
-            if (knowledgeMatch) {
-                console.log("KNOWLEDGE MATCH");
-                return knowledgeMatch;
+            // 2. Similarity matching
+            const similarities = dataset.map(item => ({
+                item,
+                similarity: calculateSimilarity(inputLower, item.input.toLowerCase())
+            }));
+
+            similarities.sort((a, b) => b.similarity - a.similarity);
+
+            const topSimilarity = similarities[0]?.similarity || 0;
+            const topMatches = similarities.slice(0, 3).filter(item => item.similarity > 0.3);
+
+            console.log("Best similarity:", topSimilarity, "Top matches:", topMatches.length);
+
+            if (topMatches.length > 0) {
+                console.log("USING SIMILARITY MATCH");
+                return topMatches[0].item.response;
             }
 
-            // 3. Use modular system for everything else
-            console.log("USING MODULAR SYSTEM");
-            return buildModularResponse(input);
+            // 3. Fallback to random dataset response
+            console.log("FALLBACK TO RANDOM");
+            const randomItem = dataset[Math.floor(Math.random() * dataset.length)];
+            return randomItem.response;
         }
 
-        function findKnowledgeMatch(input) {
-            // Find all knowledge items
-            const knowledgeItems = dataset.filter(item => item.type === 'knowledge');
+        function calculateSimilarity(str1, str2) {
+            const words1 = new Set(str1.toLowerCase().split(/\s+/));
+            const words2 = new Set(str2.toLowerCase().split(/\s+/));
 
-            // Check for partial matches
-            for (const item of knowledgeItems) {
-                if (item.input && input.includes(item.input.toLowerCase())) {
-                    return item.response;
-                }
-            }
+            const intersection = new Set([...words1].filter(x => words2.has(x)));
+            const union = new Set([...words1, ...words2]);
 
-            // Check simple math
-            const mathMatch = input.match(/(\d+)\s*\+\s*(\d+)/);
-            if (mathMatch) {
-                const result = parseInt(mathMatch[1]) + parseInt(mathMatch[2]);
-                return `${result}`;
-            }
-
-            return null;
-        }
-
-        function buildModularResponse(input) {
-            const inputLower = input.toLowerCase();
-            const responseType = analyzeInputType(inputLower);
-            console.log("Building modular response for type:", responseType);
-
-            // Get components from dataset
-            const opener = getRandomComponent('opener', responseType);
-            const middle = getRandomComponent('middle', responseType);
-            const closer = getRandomComponent('closer', responseType);
-
-            // Build coherent response
-            let response = opener;
-
-            // Add middle with proper transition
-            if (middle) {
-                if (!opener.endsWith('!') && !opener.endsWith('?')) {
-                    response += " " + middle.toLowerCase();
-                } else {
-                    response += " " + middle;
-                }
-            }
-
-            // Add closer with proper punctuation
-            if (closer) {
-                if (!response.endsWith('.') && !response.endsWith('!') && !response.endsWith('?')) {
-                    response += ".";
-                }
-                response += " " + closer;
-            }
-
-            // Ensure proper capitalization and punctuation
-            response = response.charAt(0).toUpperCase() + response.slice(1);
-            if (!response.endsWith('.') && !response.endsWith('!') && !response.endsWith('?')) {
-                response += '.';
-            }
-
-            return response;
-        }
-
-        function analyzeInputType(input) {
-            // Convert to lowercase and remove punctuation for better matching
-            const cleanInput = input.toLowerCase().replace(/[^\w\s]/g, '');
-
-            if (cleanInput.match(/\b(hi|hello|hey|greetings|whats up|yo|sup|good morning|good afternoon)\b/)) return 'greeting';
-            if (cleanInput.match(/\b(how are you|how do you feel|hows it going|you okay|you good)\b/)) return 'emotional';
-            if (cleanInput.match(/\b(what|why|how|when|where|who|explain|tell me about|meaning of|purpose of)\b/)) return 'question';
-            if (cleanInput.match(/\b(sad|happy|angry|excited|bored|tired|anxious|depressed|feel|feeling|overwhelmed|stressed|worried|nervous)\b/)) return 'emotional';
-            if (cleanInput.match(/\b(thanks|thank you|appreciate|grateful|thankyou)\b/)) return 'gratitude';
-            if (cleanInput.match(/\b(bye|goodbye|see you|later|farewell|good night)\b/)) return 'farewell';
-            if (cleanInput.match(/\b(help|assist|support|advice|suggest|guidance)\b/)) return 'help';
-            return 'general';
-        }
-
-        function getRandomComponent(componentType, responseType) {
-            const components = dataset.filter(item =>
-                item.type === componentType &&
-                (item.category === responseType || item.category === 'general')
-            );
-
-            if (components.length === 0) {
-                // Fallback to any component of this type
-                const fallback = dataset.filter(item => item.type === componentType);
-                return fallback.length > 0 ? fallback[Math.floor(Math.random() * fallback.length)].response : '';
-            }
-
-            return components[Math.floor(Math.random() * components.length)].response;
+            return intersection.size / union.size;
         }
 
         // ==================== UTILITY FUNCTIONS ====================
