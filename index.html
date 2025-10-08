@@ -475,11 +475,18 @@
 
             // Identify content words (long words that aren't common structure words)
             const commonWords = new Set(['the', 'and', 'but', 'for', 'with', 'this', 'that', 'what', 'how', 'when', 'where', 'your', 'my', 'our', 'have', 'has', 'are', 'were']);
+            const openingWords = ['greetings', 'hello', 'hi', 'hey', 'right', 'currently', 'just'];
 
             const contentWordPositions = [];
             words.forEach((word, index) => {
                 const cleanWord = word.toLowerCase().replace(/[^a-z]/g, '');
-                if (cleanWord.length > 4 && !commonWords.has(cleanWord) && !word.endsWith('ing') && !word.endsWith('ed')) {
+                // Don't replace opening words or common words
+                if (cleanWord.length > 4 &&
+                    !commonWords.has(cleanWord) &&
+                    !openingWords.includes(cleanWord) &&
+                    !word.endsWith('ing') &&
+                    !word.endsWith('ed') &&
+                    index > 1) { // Skip first 2 words to preserve openings
                     contentWordPositions.push(index);
                 }
             });
@@ -536,6 +543,18 @@
             try {
                 const response = await fetch('data.json');
                 const data = await response.json();
+
+                // Store all models
+                models = data.models;
+
+                // Populate model dropdown
+                modelDropdown.innerHTML = '';
+                models.forEach(model => {
+                    const option = document.createElement('option');
+                    option.value = model.name;
+                    option.textContent = model.name;
+                    modelDropdown.appendChild(option);
+                });
 
                 // Use the first model
                 currentModel = data.models[0];
