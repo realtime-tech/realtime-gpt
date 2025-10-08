@@ -447,88 +447,36 @@
 
         function craftNewResponse(input, opening, theme, examples) {
             try {
-                console.log("EXTRACTING vocabulary from", examples.length, "examples");
+                // Find the MOST similar example and adapt it slightly
+                const mostSimilar = examples[0]; // Already sorted by similarity
 
-                // Extract ALL words from dataset and classify them
-                const allWords = examples.flatMap(example =>
-                    example.response.split(/\s+/).filter(word => word.length > 2 && !/[.!?,]/.test(word))
-                );
+                if (!mostSimilar) return "Let's explore this further.";
 
-                // Simple word classification based on patterns (not perfect but better than nothing)
-                const vocabulary = {
-                    starters: allWords.filter(word => /^[A-Z]/.test(word)), // Capitalized words often start sentences
-                    potentialNouns: allWords.filter(word =>
-                        word.length > 3 &&
-                        !word.endsWith('ing') &&
-                        !word.endsWith('ed') &&
-                        !['have', 'has', 'are', 'were', 'been', 'does', 'doing'].includes(word.toLowerCase())
-                    ),
-                    potentialVerbs: allWords.filter(word =>
-                        word.endsWith('ing') || word.endsWith('ed') ||
-                        ['am', 'is', 'are', 'was', 'were', 'have', 'has', 'do', 'does', 'feel', 'think', 'know'].includes(word.toLowerCase())
-                    ),
-                    connectors: allWords.filter(word =>
-                        ['and', 'but', 'or', 'while', 'when', 'with', 'through', 'across'].includes(word.toLowerCase())
-                    )
-                };
+                // Simple adaptation: replace key words while keeping structure
+                const originalResponse = mostSimilar.response;
+                const inputWords = input.toLowerCase().split(/\s+/).filter(w => w.length > 2);
 
-                console.log("Extracted vocabulary:", {
-                    starters: vocabulary.starters.length,
-                    nouns: vocabulary.potentialNouns.length,
-                    verbs: vocabulary.potentialVerbs.length,
-                    connectors: vocabulary.connectors.length
-                });
+                // Replace 1-2 words in the response with words from input
+                let adaptedResponse = originalResponse;
+                const wordsToReplace = Math.min(2, inputWords.length);
 
-                // Build sentence using extracted vocabulary
-                let response = "";
-
-                // Start with a capitalized word from dataset
-                if (vocabulary.starters.length > 0) {
-                    response = vocabulary.starters[Math.floor(Math.random() * vocabulary.starters.length)];
-                } else if (opening) {
-                    response = opening.split(' ')[0];
-                } else {
-                    response = "The";
-                }
-
-                // Add a verb
-                if (vocabulary.potentialVerbs.length > 0) {
-                    response += " " + vocabulary.potentialVerbs[Math.floor(Math.random() * vocabulary.potentialVerbs.length)];
-                } else {
-                    response += " is";
-                }
-
-                // Add 1-3 content words (nouns/adjectives)
-                const contentCount = 1 + Math.floor(Math.random() * 3);
-                for (let i = 0; i < contentCount; i++) {
-                    if (vocabulary.potentialNouns.length > 0) {
-                        response += " " + vocabulary.potentialNouns[Math.floor(Math.random() * vocabulary.potentialNouns.length)];
+                for (let i = 0; i < wordsToReplace; i++) {
+                    const randomPosition = Math.floor(Math.random() * 3) + 1; // Don't replace first word
+                    const responseWords = adaptedResponse.split(/\s+/);
+                    if (randomPosition < responseWords.length) {
+                        responseWords[randomPosition] = inputWords[i];
+                        adaptedResponse = responseWords.join(' ');
                     }
                 }
 
-                // Add connector and another phrase sometimes
-                if (Math.random() > 0.5 && vocabulary.connectors.length > 0 && vocabulary.potentialVerbs.length > 1) {
-                    response += " " + vocabulary.connectors[Math.floor(Math.random() * vocabulary.connectors.length)];
-                    response += " " + vocabulary.potentialVerbs[Math.floor(Math.random() * vocabulary.potentialVerbs.length)];
-                    if (vocabulary.potentialNouns.length > 0) {
-                        response += " " + vocabulary.potentialNouns[Math.floor(Math.random() * vocabulary.potentialNouns.length)];
-                    }
-                }
-
-                // Ensure proper punctuation
-                if (!response.endsWith('.') && !response.endsWith('!')) {
-                    response += '.';
-                }
-
-                console.log("Vocabulary-based response:", response);
-                return response;
+                console.log("Simple adaptation:", originalResponse, "→", adaptedResponse);
+                return adaptedResponse;
 
             } catch (error) {
                 console.error("Error:", error);
-                return examples[0]?.response || "Let's explore this further.";
+                return examples[0]?.response || "Let's continue our conversation.";
             }
         }
-
         // Helper function to classify words by their role
         function classifyWordType(word, position, totalLength) {
             const smallWords = ['the', 'a', 'in', 'on', 'at', 'to', 'for', 'with', 'your', 'my', 'our'];
