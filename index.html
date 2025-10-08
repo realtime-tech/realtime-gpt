@@ -503,11 +503,33 @@
 
         async function loadModels() {
             try {
-                const response = await fetch('data.json');
-                const data = await response.json();
+                // Try to get list of model files from models directory
+                const modelFiles = [
+                    'rt-mini.json',
+                    'tech-support.json',
+                    'creative-writer.json'
+                ]; // You can add more model files here
 
-                // Store all models
-                models = data.models;
+                // Load each model file
+                models = [];
+                for (const modelFile of modelFiles) {
+                    try {
+                        const response = await fetch(`models/${modelFile}`);
+                        if (response.ok) {
+                            const modelData = await response.json();
+                            // Each file should contain exactly one model object
+                            if (modelData.name && modelData.dataset) {
+                                models.push(modelData);
+                            }
+                        }
+                    } catch (error) {
+                        console.error(`Error loading model file ${modelFile}:`, error);
+                    }
+                }
+
+                if (models.length === 0) {
+                    throw new Error('No valid models could be loaded');
+                }
 
                 // Populate model dropdown
                 modelDropdown.innerHTML = '';
@@ -519,13 +541,16 @@
                 });
 
                 // Use the first model
-                currentModel = data.models[0];
-                dataset = currentModel.dataset;
+                currentModel = models[0];
+                dataset = currentModel.dataset || [];
 
                 addMessage(`Model "${currentModel.name}" loaded successfully. How can I help you today?`, 'ai');
             } catch (error) {
-                console.error('Error loading model:', error);
-                addMessage('Error loading model. Please check if data.json exists.', 'ai');
+                console.error('Error loading models:', error);
+                addMessage('Error loading models. Please check if the models directory exists and contains JSON files.', 'ai');
+
+                // Add a fallback option to the dropdown
+                modelDropdown.innerHTML = '<option value="">No models available</option>';
             }
         }
 
@@ -572,6 +597,7 @@
 
         // Event listeners
         sendButton.addEventListener('click', sendMessage);
+        modelDropdown.addEventListener('change', loadSelectedModel);
 
         chatInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
