@@ -411,7 +411,7 @@
             similarities.sort((a, b) => b.similarity - a.similarity);
 
             const topSimilarity = similarities[0]?.similarity || 0;
-            const topMatches = similarities.slice(0, 3).filter(item => item.similarity > 0.4);
+            const topMatches = similarities.slice(0, 3).filter(item => item.similarity > 0.25);
 
             console.log("Best similarity:", topSimilarity, "Top matches:", topMatches.length);
             if (topMatches.length > 0) {
