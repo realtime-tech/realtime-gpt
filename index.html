@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Realtime-GPT | Local AI Chat</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -41,7 +44,6 @@
             height: 100vh;
         }
 
-        /* Sidebar */
         .sidebar {
             width: 260px;
             background: var(--bg-secondary);
@@ -201,14 +203,12 @@
             border-color: var(--accent);
         }
 
-        /* Main Content */
         .main-content {
             flex: 1;
             display: flex;
             flex-direction: column;
         }
 
-        /* Top Bar */
         .top-bar {
             padding: 16px 24px;
             background: var(--bg-secondary);
@@ -289,7 +289,6 @@
             border-color: var(--accent);
         }
 
-        /* Chat Area */
         .chat-area {
             flex: 1;
             overflow-y: auto;
@@ -311,7 +310,6 @@
             border-radius: 4px;
         }
 
-        /* Welcome Screen */
         .welcome-screen {
             flex: 1;
             display: flex;
@@ -394,14 +392,6 @@
             text-decoration: underline;
         }
 
-        .setup-step-content code {
-            background: var(--bg-tertiary);
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-family: 'Courier New', monospace;
-            font-size: 0.9rem;
-        }
-
         .api-key-input-group {
             display: flex;
             gap: 12px;
@@ -459,7 +449,113 @@
             margin-bottom: 8px;
         }
 
-        /* Messages */
+        .model-info-section {
+            margin-top: 32px;
+            padding-top: 32px;
+            border-top: 1px solid var(--border);
+        }
+
+        .model-info-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: var(--text-primary);
+        }
+
+        .model-cards-info {
+            display: grid;
+            gap: 16px;
+        }
+
+        .model-info-card {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 20px;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .model-info-card:hover {
+            border-color: var(--accent);
+            transform: translateX(4px);
+        }
+
+        .model-info-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 12px;
+        }
+
+        .model-info-name {
+            font-weight: 600;
+            font-size: 1.05rem;
+            color: var(--accent-light);
+        }
+
+        .model-info-badge {
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .badge-best {
+            background: rgba(34, 197, 94, 0.2);
+            color: var(--success);
+        }
+
+        .badge-fast {
+            background: rgba(59, 130, 246, 0.2);
+            color: var(--accent-light);
+        }
+
+        .model-info-desc {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            line-height: 1.6;
+            margin-bottom: 12px;
+        }
+
+        .model-info-stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-top: 12px;
+        }
+
+        .model-stat {
+            font-size: 0.85rem;
+        }
+
+        .model-stat-label {
+            color: var(--text-dim);
+            margin-bottom: 2px;
+        }
+
+        .model-stat-value {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .model-info-traits {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 12px;
+        }
+
+        .trait-tag {
+            padding: 4px 10px;
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 6px;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
         .message {
             display: flex;
             gap: 16px;
@@ -500,9 +596,50 @@
             color: var(--text-primary);
         }
 
+        .message.assistant .message-content {
+            background: var(--bg-secondary);
+            padding: 16px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+
         .message-content {
             flex: 1;
             padding-top: 8px;
+            position: relative;
+        }
+
+        .message-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .copy-message-btn {
+            padding: 6px 12px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .copy-message-btn:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+            border-color: var(--accent);
+        }
+
+        .copy-message-btn.copied {
+            background: var(--success);
+            color: white;
+            border-color: var(--success);
         }
 
         .message-text {
@@ -510,6 +647,208 @@
             color: var(--text-primary);
             white-space: pre-wrap;
             word-wrap: break-word;
+        }
+
+        /* Markdown styling */
+        .message-text h1,
+        .message-text h2,
+        .message-text h3,
+        .message-text h4,
+        .message-text h5,
+        .message-text h6 {
+            margin-top: 16px;
+            margin-bottom: 8px;
+            font-weight: 600;
+            line-height: 1.4;
+        }
+
+        .message-text h1 { font-size: 1.5em; }
+        .message-text h2 { font-size: 1.3em; }
+        .message-text h3 { font-size: 1.15em; }
+
+        .message-text p {
+            margin-bottom: 12px;
+        }
+
+        .message-text strong {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .message-text em {
+            font-style: italic;
+        }
+
+        .message-text code {
+            background: var(--bg-tertiary);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Monaco', 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+
+        .message-text pre {
+            background: var(--bg-tertiary);
+            padding: 12px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 12px 0;
+            position: relative;
+        }
+
+        .code-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border-bottom: 1px solid var(--border);
+            margin: -12px -12px 12px -12px;
+            border-radius: 8px 8px 0 0;
+        }
+
+        .code-language {
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        .copy-code-btn {
+            padding: 4px 10px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .copy-code-btn:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+            border-color: var(--accent);
+        }
+
+        .copy-code-btn.copied {
+            background: var(--success);
+            color: white;
+            border-color: var(--success);
+        }
+
+        .message-text pre code {
+            background: none;
+            padding: 0;
+            font-size: 0.85em;
+        }
+
+        .message-text table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 12px 0;
+        }
+
+        .message-text table th,
+        .message-text table td {
+            border: 1px solid var(--border);
+            padding: 8px 12px;
+            text-align: left;
+        }
+
+        .message-text table th {
+            background: var(--bg-tertiary);
+            font-weight: 600;
+        }
+
+        .message-text ul,
+        .message-text ol {
+            margin: 8px 0;
+            padding-left: 24px;
+        }
+
+        .message-text li {
+            margin: 4px 0;
+        }
+
+        .message-text blockquote {
+            border-left: 3px solid var(--accent);
+            padding-left: 12px;
+            margin: 12px 0;
+            color: var(--text-secondary);
+        }
+
+        .message-text a {
+            color: var(--accent-light);
+            text-decoration: none;
+        }
+
+        .message-text a:hover {
+            text-decoration: underline;
+        }
+
+        /* Success notification */
+        .success-notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--success);
+            color: white;
+            padding: 16px 24px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 600;
+            z-index: 10000;
+            animation: slideInRight 0.3s ease-out;
+            opacity: 0;
+        }
+
+        .success-notification.show {
+            opacity: 1;
+        }
+
+        .success-notification.hide {
+            animation: slideOutRight 0.3s ease-out forwards;
+        }
+
+        @keyframes slideInRight {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideOutRight {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+        }
+
+        .success-icon {
+            width: 24px;
+            height: 24px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
         }
 
         .typing-indicator {
@@ -543,7 +882,6 @@
             }
         }
 
-        /* Input Area */
         .input-area {
             padding: 16px 24px;
             background: var(--bg-secondary);
@@ -609,7 +947,6 @@
             cursor: not-allowed;
         }
 
-        /* Modal */
         .modal {
             display: none;
             position: fixed;
@@ -695,7 +1032,24 @@
             display: none !important;
         }
 
-        /* Responsive */
+        .model-selector-screen {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .model-selector-title {
+            font-size: 1.8rem;
+            font-weight: 600;
+            margin-bottom: 12px;
+            text-align: center;
+        }
+
+        .model-selector-subtitle {
+            color: var(--text-secondary);
+            margin-bottom: 32px;
+            text-align: center;
+        }
+
         @media (max-width: 768px) {
             .sidebar {
                 position: fixed;
@@ -718,7 +1072,6 @@
 </head>
 <body>
     <div class="app-container">
-        <!-- Sidebar -->
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <div class="logo">Realtime-GPT</div>
@@ -729,9 +1082,7 @@
                 </button>
             </div>
 
-            <div class="chat-list" id="chatList">
-                <!-- Chat items will be inserted here -->
-            </div>
+            <div class="chat-list" id="chatList"></div>
 
             <div class="sidebar-footer">
                 <button class="sidebar-btn" onclick="showApiKeyModal()">
@@ -753,16 +1104,15 @@
             </div>
         </aside>
 
-        <!-- Main Content -->
         <main class="main-content">
-            <!-- Top Bar -->
             <div class="top-bar">
                 <div class="model-selector">
                     <select class="model-select" id="modelSelect" onchange="handleModelChange()">
-                        <option value="llama-3.1-70b-versatile">Llama 3.1 70B (Best)</option>
-                        <option value="llama-3.1-8b-instant" selected>Llama 3.1 8B (Fast)</option>
-                        <option value="mixtral-8x7b-32768">Mixtral 8x7B</option>
-                        <option value="gemma2-9b-it">Gemma 2 9B</option>
+                        <option value="">Select Model...</option>
+                        <option value="llama-3.3-70b-versatile">Llama 3.3 70B Versatile</option>
+                        <option value="llama-3.1-8b-instant">Llama 3.1 8B Instant</option>
+                        <option value="moonshotai/kimi-k2-instruct">Kimi K2 Instruct</option>
+                        <option value="openai/gpt-oss-120b">GPT-OSS 120B</option>
                     </select>
                     <div class="model-status">
                         <span class="status-dot" id="statusDot"></span>
@@ -774,7 +1124,6 @@
                 </div>
             </div>
 
-            <!-- Chat Area -->
             <div class="chat-area" id="chatArea">
                 <div class="welcome-screen" id="welcomeScreen">
                     <h1 class="welcome-title">Realtime-GPT</h1>
@@ -826,15 +1175,154 @@
                             <div class="info-box-title">⚡ Free Tier Limits</div>
                             Groq's free tier: 30 requests/minute, ~6,000 requests/day. More than enough for personal use!
                         </div>
+
+                        <div class="model-info-section">
+                            <h3 class="model-info-title">🤖 Available Models</h3>
+                            
+                            <div class="model-cards-info">
+                                <div class="model-info-card" onclick="selectModelFromCard('llama-3.3-70b-versatile')">
+                                    <div class="model-info-header">
+                                        <div class="model-info-name">Llama 3.3 70B Versatile</div>
+                                        <div class="model-info-badge badge-best">Best Quality</div>
+                                    </div>
+                                    <div class="model-info-desc">
+                                        Meta's latest and most capable model. Excels at complex reasoning, creative writing, and nuanced conversations. 560 tokens/sec.
+                                    </div>
+                                    <div class="model-info-stats">
+                                        <div class="model-stat">
+                                            <div class="model-stat-label">Parameters</div>
+                                            <div class="model-stat-value">70 Billion</div>
+                                        </div>
+                                        <div class="model-stat">
+                                            <div class="model-stat-label">Context</div>
+                                            <div class="model-stat-value">131K tokens</div>
+                                        </div>
+                                        <div class="model-stat">
+                                            <div class="model-stat-label">Speed</div>
+                                            <div class="model-stat-value">560 T/s</div>
+                                        </div>
+                                        <div class="model-stat">
+                                            <div class="model-stat-label">Best For</div>
+                                            <div class="model-stat-value">Complex tasks</div>
+                                        </div>
+                                    </div>
+                                    <div class="model-info-traits">
+                                        <span class="trait-tag">📝 Creative Writing</span>
+                                        <span class="trait-tag">🧠 Deep Reasoning</span>
+                                        <span class="trait-tag">💼 Professional</span>
+                                        <span class="trait-tag">🔬 Technical</span>
+                                    </div>
+                                </div>
+
+                                <div class="model-info-card" onclick="selectModelFromCard('llama-3.1-8b-instant')">
+                                    <div class="model-info-header">
+                                        <div class="model-info-name">Llama 3.1 8B Instant</div>
+                                        <div class="model-info-badge badge-fast">Fastest</div>
+                                    </div>
+                                    <div class="model-info-desc">
+                                        Lightning-fast responses with good quality. Perfect for quick questions, casual chat, and rapid iterations. 1000 tokens/sec.
+                                    </div>
+                                    <div class="model-info-stats">
+                                        <div class="model-stat">
+                                            <div class="model-stat-label">Parameters</div>
+                                            <div class="model-stat-value">8 Billion</div>
+                                        </div>
+                                        <div class="model-stat">
+                                            <div class="model-stat-label">Context</div>
+                                            <div class="model-stat-value">131K tokens</div>
+                                        </div>
+                                        <div class="model-stat">
+                                            <div class="model-stat-label">Speed</div>
+                                            <div class="model-stat-value">1000 T/s</div>
+                                        </div>
+                                        <div class="model-stat">
+                                            <div class="model-stat-label">Best For</div>
+                                            <div class="model-stat-value">Quick Q&A</div>
+                                        </div>
+                                    </div>
+                                    <div class="model-info-traits">
+                                        <span class="trait-tag">⚡ Speed Demon</span>
+                                        <span class="trait-tag">💬 Casual Chat</span>
+                                        <span class="trait-tag">❓ Quick Answers</span>
+                                        <span class="trait-tag">🎯 Efficient</span>
+                                    </div>
+                                </div>
+
+                                <div class="model-info-card" onclick="selectModelFromCard('moonshotai/kimi-k2-instruct')">
+                                    <div class="model-info-header">
+                                        <div class="model-info-name">Kimi K2 Instruct</div>
+                                        <div class="model-info-badge badge-best">Premium</div>
+                                    </div>
+                                    <div class="model-info-desc">
+                                        Moonshot AI's powerful model with exceptional context understanding. Great for complex conversations and detailed analysis. 280 tokens/sec.
+                                    </div>
+                                    <div class="model-info-stats">
+                                        <div class="model-stat">
+                                            <div class="model-stat-label">Parameters</div>
+                                            <div class="model-stat-value">Large Scale</div>
+                                        </div>
+                                        <div class="model-stat">
+                                            <div class="model-stat-label">Context</div>
+                                            <div class="model-stat-value">131K tokens</div>
+                                        </div>
+                                        <div class="model-stat">
+                                            <div class="model-stat-label">Speed</div>
+                                            <div class="model-stat-value">280 T/s</div>
+                                        </div>
+                                        <div class="model-stat">
+                                            <div class="model-stat-label">Best For</div>
+                                            <div class="model-stat-value">Long context</div>
+                                        </div>
+                                    </div>
+                                    <div class="model-info-traits">
+                                        <span class="trait-tag">📚 Long Memory</span>
+                                        <span class="trait-tag">🎓 Detailed</span>
+                                        <span class="trait-tag">💡 Insightful</span>
+                                        <span class="trait-tag">🌏 Multilingual</span>
+                                    </div>
+                                </div>
+
+                                <div class="model-info-card" onclick="selectModelFromCard('openai/gpt-oss-120b')">
+                                    <div class="model-info-header">
+                                        <div class="model-info-name">GPT-OSS 120B</div>
+                                        <div class="model-info-badge badge-best">Most Powerful</div>
+                                    </div>
+                                    <div class="model-info-desc">
+                                        OpenAI's flagship open model with 120 billion parameters. Has web search and code execution built-in. Most capable for complex reasoning. 1200 tokens/sec.
+                                    </div>
+                                    <div class="model-info-stats">
+                                        <div class="model-stat">
+                                            <div class="model-stat-label">Parameters</div>
+                                            <div class="model-stat-value">120 Billion</div>
+                                        </div>
+                                        <div class="model-stat">
+                                            <div class="model-stat-label">Context</div>
+                                            <div class="model-stat-value">131K tokens</div>
+                                        </div>
+                                        <div class="model-stat">
+                                            <div class="model-stat-label">Speed</div>
+                                            <div class="model-stat-value">1200 T/s</div>
+                                        </div>
+                                        <div class="model-stat">
+                                            <div class="model-stat-label">Best For</div>
+                                            <div class="model-stat-value">Everything</div>
+                                        </div>
+                                    </div>
+                                    <div class="model-info-traits">
+                                        <span class="trait-tag">🚀 Most Advanced</span>
+                                        <span class="trait-tag">🔍 Web Search</span>
+                                        <span class="trait-tag">💻 Code Execution</span>
+                                        <span class="trait-tag">🎯 Reasoning</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <div id="messagesContainer" class="hidden">
-                    <!-- Messages will be inserted here -->
-                </div>
+                <div id="messagesContainer" class="hidden"></div>
             </div>
 
-            <!-- Input Area -->
             <div class="input-area">
                 <div class="input-container">
                     <div class="input-wrapper">
@@ -854,7 +1342,6 @@
         </main>
     </div>
 
-    <!-- API Key Modal -->
     <div class="modal" id="apiKeyModal">
         <div class="modal-content">
             <div class="modal-header">
@@ -891,14 +1378,12 @@
         </div>
     </div>
 
-    <!-- Hidden file input for import -->
     <input type="file" id="fileInput" accept=".json" style="display: none;" onchange="handleFileImport(event)">
 
     <script>
-        // App State
         let state = {
             currentChatId: null,
-            currentModel: 'llama-3.1-8b-instant',
+            currentModel: null,
             apiKey: null,
             isGenerating: false,
             chats: [],
@@ -909,41 +1394,75 @@
             }
         };
 
-        // Initialize app
+        // Configure marked.js for better markdown rendering
+        marked.setOptions({
+            breaks: true,
+            gfm: true,
+            headerIds: false,
+            mangle: false
+        });
+
         window.addEventListener('DOMContentLoaded', () => {
             loadStateFromLocalStorage();
             renderChatList();
             updateUI();
         });
 
-        // Load state from localStorage
         function loadStateFromLocalStorage() {
             const savedChats = localStorage.getItem('realtimeGPT_chats');
-            if (savedChats) {
-                state.chats = JSON.parse(savedChats);
-            }
+            if (savedChats) state.chats = JSON.parse(savedChats);
+            
             const savedSettings = localStorage.getItem('realtimeGPT_settings');
-            if (savedSettings) {
-                state.settings = JSON.parse(savedSettings);
-            }
+            if (savedSettings) state.settings = JSON.parse(savedSettings);
+            
             const savedApiKey = localStorage.getItem('realtimeGPT_apiKey');
-            if (savedApiKey) {
-                state.apiKey = savedApiKey;
-            }
-            const savedModel = localStorage.getItem('realtimeGPT_currentModel');
-            if (savedModel) {
-                state.currentModel = savedModel;
-            }
+            if (savedApiKey) state.apiKey = savedApiKey;
         }
 
-        // Save state to localStorage
         function saveStateToLocalStorage() {
             localStorage.setItem('realtimeGPT_chats', JSON.stringify(state.chats));
             localStorage.setItem('realtimeGPT_settings', JSON.stringify(state.settings));
-            if (state.apiKey) {
-                localStorage.setItem('realtimeGPT_apiKey', state.apiKey);
+            if (state.apiKey) localStorage.setItem('realtimeGPT_apiKey', state.apiKey);
+        }
+
+        function getModelDisplayName(modelId) {
+            if (!modelId) return 'No model';
+            const names = {
+                'llama-3.3-70b-versatile': 'Llama 3.3 70B',
+                'llama-3.1-8b-instant': 'Llama 3.1 8B',
+                'moonshotai/kimi-k2-instruct': 'Kimi K2',
+                'openai/gpt-oss-120b': 'GPT-OSS 120B'
+            };
+            return names[modelId] || modelId;
+        }
+
+        // Clean up empty chats when navigating away
+        function cleanupEmptyChats() {
+            const beforeCount = state.chats.length;
+            state.chats = state.chats.filter(c => 
+                c.messages.length > 0 || c.id === state.currentChatId
+            );
+            if (state.chats.length !== beforeCount) {
+                saveStateToLocalStorage();
             }
-            localStorage.setItem('realtimeGPT_currentModel', state.currentModel);
+        }
+
+        // Show success notification
+        function showSuccessNotification(message) {
+            const notification = document.createElement('div');
+            notification.className = 'success-notification';
+            notification.innerHTML = `
+                <div class="success-icon">✓</div>
+                <div>${message}</div>
+            `;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => notification.classList.add('show'), 10);
+            
+            setTimeout(() => {
+                notification.classList.add('hide');
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
         }
 
         // API Key Management
@@ -959,12 +1478,8 @@
             }
             state.apiKey = apiKey;
             saveStateToLocalStorage();
+            showSuccessNotification('✨ API Key saved successfully!');
             updateUI();
-            
-            // Auto-create first chat
-            if (state.chats.length === 0) {
-                createNewChat();
-            }
         };
 
         window.showApiKeyModal = function() {
@@ -989,48 +1504,92 @@
             state.apiKey = apiKey;
             saveStateToLocalStorage();
             hideApiKeyModal();
+            showSuccessNotification('✨ API Key updated successfully!');
             updateUI();
-            
-            // Auto-create first chat if none exist
-            if (state.chats.length === 0) {
-                createNewChat();
-            }
         };
 
-        // Create new chat
+        // Create new chat - shows model selector (no chat created yet)
         window.createNewChat = function() {
             if (!state.apiKey) {
                 alert('Please set up your API key first');
                 return;
             }
             
+            cleanupEmptyChats();
+            
+            // Just clear selection - show model selector
+            state.currentChatId = null;
+            state.currentModel = null;
+            document.getElementById('modelSelect').value = '';
+            
+            saveStateToLocalStorage();
+            renderChatList();
+            updateUI();
+        };
+
+        // Select model from card - creates chat with that model
+        window.selectModelFromCard = function(modelId) {
+            if (!state.apiKey) {
+                alert('Please set up your API key first');
+                return;
+            }
+
+            cleanupEmptyChats();
+            
             const chat = {
                 id: Date.now().toString(),
                 title: 'New Chat',
-                model: state.currentModel,
+                model: modelId,
                 messages: [],
                 createdAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString()
             };
             state.chats.unshift(chat);
             state.currentChatId = chat.id;
+            state.currentModel = modelId;
+            document.getElementById('modelSelect').value = modelId;
+            
             saveStateToLocalStorage();
             renderChatList();
             updateUI();
         };
 
-        // Select chat
+        // Handle model change from dropdown - creates new chat instantly
+        window.handleModelChange = function() {
+            const select = document.getElementById('modelSelect');
+            const newModel = select.value;
+            
+            if (!newModel || !state.apiKey) return;
+            
+            cleanupEmptyChats();
+            
+            const chat = {
+                id: Date.now().toString(),
+                title: 'New Chat',
+                model: newModel,
+                messages: [],
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            };
+            state.chats.unshift(chat);
+            state.currentChatId = chat.id;
+            state.currentModel = newModel;
+            
+            saveStateToLocalStorage();
+            renderChatList();
+            updateUI();
+        };
+
+        // Select existing chat
         window.selectChat = function(chatId) {
             const chat = state.chats.find(c => c.id === chatId);
             if (!chat) return;
 
+            cleanupEmptyChats();
+
             state.currentChatId = chatId;
-            
-            // Update model selector if chat has different model
-            if (chat.model) {
-                state.currentModel = chat.model;
-                document.getElementById('modelSelect').value = chat.model;
-            }
+            state.currentModel = chat.model;
+            document.getElementById('modelSelect').value = chat.model || '';
 
             renderChatList();
             updateUI();
@@ -1043,6 +1602,7 @@
                 state.chats = state.chats.filter(c => c.id !== chatId);
                 if (state.currentChatId === chatId) {
                     state.currentChatId = null;
+                    state.currentModel = null;
                 }
                 saveStateToLocalStorage();
                 renderChatList();
@@ -1061,11 +1621,12 @@
             chatList.innerHTML = state.chats.map(chat => {
                 const isActive = chat.id === state.currentChatId;
                 const date = new Date(chat.updatedAt).toLocaleDateString();
+                const modelName = getModelDisplayName(chat.model);
                 return `
                     <div class="chat-item ${isActive ? 'active' : ''}" onclick="selectChat('${chat.id}')">
                         <div class="chat-item-content">
                             <div class="chat-item-title">${escapeHtml(chat.title)}</div>
-                            <div class="chat-item-meta">${date}</div>
+                            <div class="chat-item-meta">${modelName} • ${date}</div>
                         </div>
                         <button class="chat-item-delete" onclick="deleteChat('${chat.id}', event)">✕</button>
                     </div>
@@ -1073,38 +1634,22 @@
             }).join('');
         }
 
-        // Handle model change
-        window.handleModelChange = function() {
-            const select = document.getElementById('modelSelect');
-            state.currentModel = select.value;
-            
-            const currentChat = state.chats.find(c => c.id === state.currentChatId);
-            if (currentChat) {
-                currentChat.model = state.currentModel;
-            }
-            
-            saveStateToLocalStorage();
-            updateUI();
-        };
-
         // Send message
         window.sendMessage = async function() {
             const input = document.getElementById('messageInput');
             const message = input.value.trim();
 
-            if (!message || state.isGenerating || !state.apiKey) return;
+            if (!message || state.isGenerating || !state.apiKey || !state.currentModel) return;
 
             const currentChat = state.chats.find(c => c.id === state.currentChatId);
             if (!currentChat) return;
 
-            // Add user message
             currentChat.messages.push({
                 role: 'user',
                 content: message,
                 timestamp: new Date().toISOString()
             });
 
-            // Update chat title if first message
             if (currentChat.messages.length === 1) {
                 currentChat.title = message.slice(0, 50) + (message.length > 50 ? '...' : '');
             }
@@ -1117,14 +1662,12 @@
             input.value = '';
             autoResize(input);
 
-            // Generate response
             state.isGenerating = true;
             updateUI();
 
             const typingId = addTypingIndicator();
 
             try {
-                // Build conversation history for Groq API
                 const messages = currentChat.messages.map(msg => ({
                     role: msg.role === 'user' ? 'user' : 'assistant',
                     content: msg.content
@@ -1155,7 +1698,6 @@
 
                 const responseText = data.choices[0].message.content;
 
-                // Add assistant message
                 currentChat.messages.push({
                     role: 'assistant',
                     content: responseText,
@@ -1192,7 +1734,6 @@
             updateUI();
         };
 
-        // Render messages
         function renderMessages() {
             const currentChat = state.chats.find(c => c.id === state.currentChatId);
             if (!currentChat) return;
@@ -1204,23 +1745,78 @@
                 return;
             }
 
-            container.innerHTML = currentChat.messages.map(msg => {
+            container.innerHTML = currentChat.messages.map((msg, index) => {
                 const avatar = msg.role === 'user' ? 'U' : 'AI';
+                let messageContent;
+                
+                if (msg.role === 'assistant') {
+                    // Render assistant messages with markdown
+                    messageContent = marked.parse(msg.content);
+                } else {
+                    // Keep user messages as plain text
+                    messageContent = escapeHtml(msg.content);
+                }
+                
+                const copyButton = msg.role === 'assistant' ? 
+                    `<button class="copy-message-btn" onclick="copyMessage(${index})" data-message-index="${index}">
+                        <span>📋</span>
+                        <span>Copy</span>
+                    </button>` : '';
+                
                 return `
                     <div class="message ${msg.role}">
                         <div class="message-avatar">${avatar}</div>
                         <div class="message-content">
-                            <div class="message-text">${escapeHtml(msg.content)}</div>
+                            ${copyButton}
+                            <div class="message-text">${messageContent}</div>
                         </div>
                     </div>
                 `;
             }).join('');
 
+            // Process code blocks to add copy buttons
+            container.querySelectorAll('pre code').forEach((block, blockIndex) => {
+                // Apply syntax highlighting
+                hljs.highlightElement(block);
+                
+                // Detect language
+                const language = block.className.match(/language-(\w+)/)?.[1] || 'code';
+                
+                // Get the code content
+                const code = block.textContent;
+                
+                // Wrap in a container with header
+                const pre = block.parentElement;
+                const wrapper = document.createElement('div');
+                wrapper.style.position = 'relative';
+                
+                const header = document.createElement('div');
+                header.className = 'code-header';
+                
+                const langSpan = document.createElement('span');
+                langSpan.className = 'code-language';
+                langSpan.textContent = language;
+                
+                const copyBtn = document.createElement('button');
+                copyBtn.className = 'copy-code-btn';
+                copyBtn.innerHTML = '<span>📋</span><span>Copy</span>';
+                copyBtn.setAttribute('data-code', code);
+                copyBtn.onclick = function() {
+                    copyCode(this);
+                };
+                
+                header.appendChild(langSpan);
+                header.appendChild(copyBtn);
+                
+                pre.parentNode.insertBefore(wrapper, pre);
+                wrapper.appendChild(pre);
+                pre.insertBefore(header, block);
+            });
+
             const chatArea = document.getElementById('chatArea');
             chatArea.scrollTop = chatArea.scrollHeight;
         }
 
-        // Add typing indicator
         function addTypingIndicator() {
             const container = document.getElementById('messagesContainer');
             const id = 'typing-' + Date.now();
@@ -1245,13 +1841,11 @@
             return id;
         }
 
-        // Remove typing indicator
         function removeTypingIndicator(id) {
             const el = document.getElementById(id);
             if (el) el.remove();
         }
 
-        // Update UI
         function updateUI() {
             const currentChat = state.chats.find(c => c.id === state.currentChatId);
             const welcomeScreen = document.getElementById('welcomeScreen');
@@ -1261,10 +1855,9 @@
             const statusDot = document.getElementById('statusDot');
             const statusText = document.getElementById('statusText');
 
-            // Update status
             if (state.apiKey) {
                 statusDot.className = 'status-dot ready';
-                statusText.textContent = 'Ready';
+                statusText.textContent = state.currentModel ? getModelDisplayName(state.currentModel) : 'Ready';
                 newChatBtn.disabled = false;
             } else {
                 statusDot.className = 'status-dot';
@@ -1272,11 +1865,9 @@
                 newChatBtn.disabled = true;
             }
 
-            // Update model select
-            document.getElementById('modelSelect').value = state.currentModel;
+            document.getElementById('modelSelect').value = state.currentModel || '';
 
-            // Show/hide welcome screen
-            if (!state.apiKey) {
+            if (!state.apiKey || !state.currentChatId) {
                 welcomeScreen.classList.remove('hidden');
                 messagesContainer.classList.add('hidden');
             } else if (currentChat && currentChat.messages.length > 0) {
@@ -1287,23 +1878,17 @@
                 welcomeScreen.classList.add('hidden');
                 messagesContainer.classList.remove('hidden');
                 messagesContainer.innerHTML = '';
-            } else {
-                welcomeScreen.classList.add('hidden');
-                messagesContainer.classList.add('hidden');
             }
 
-            // Enable/disable send button
-            sendBtn.disabled = !state.apiKey || state.isGenerating || !state.currentChatId;
+            sendBtn.disabled = !state.apiKey || state.isGenerating || !state.currentChatId || !state.currentModel;
         }
 
-        // Export data
         window.exportData = function() {
             const data = {
                 version: '1.0',
                 exportDate: new Date().toISOString(),
                 chats: state.chats,
                 settings: state.settings,
-                // Don't export API key for security
             };
 
             const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -1315,7 +1900,6 @@
             URL.revokeObjectURL(url);
         };
 
-        // Import data
         window.importData = function() {
             document.getElementById('fileInput').click();
         };
@@ -1333,6 +1917,7 @@
                         state.chats = data.chats || [];
                         state.settings = data.settings || state.settings;
                         state.currentChatId = null;
+                        state.currentModel = null;
                         
                         saveStateToLocalStorage();
                         renderChatList();
@@ -1349,12 +1934,12 @@
             event.target.value = '';
         };
 
-        // Clear all data
         window.clearAllData = function() {
             if (confirm('This will delete all chats. Continue?')) {
                 if (confirm('Are you absolutely sure? This cannot be undone.')) {
                     state.chats = [];
                     state.currentChatId = null;
+                    state.currentModel = null;
                     saveStateToLocalStorage();
                     renderChatList();
                     updateUI();
@@ -1363,7 +1948,6 @@
             }
         };
 
-        // Handle input keypress
         window.handleInputKeypress = function(event) {
             if (event.key === 'Enter' && !event.shiftKey) {
                 event.preventDefault();
@@ -1371,7 +1955,6 @@
             }
         };
 
-        // Auto-resize textarea
         const messageInput = document.getElementById('messageInput');
         messageInput.addEventListener('input', function() {
             autoResize(this);
@@ -1382,7 +1965,60 @@
             textarea.style.height = Math.min(textarea.scrollHeight, 200) + 'px';
         }
 
-        // Escape HTML
+        // Copy entire message
+        window.copyMessage = async function(messageIndex) {
+            const currentChat = state.chats.find(c => c.id === state.currentChatId);
+            if (!currentChat) return;
+            
+            const message = currentChat.messages[messageIndex];
+            if (!message) return;
+            
+            try {
+                await navigator.clipboard.writeText(message.content);
+                
+                // Visual feedback
+                const btn = document.querySelector(`[data-message-index="${messageIndex}"]`);
+                if (btn) {
+                    const originalHTML = btn.innerHTML;
+                    btn.classList.add('copied');
+                    btn.innerHTML = '<span>✓</span><span>Copied!</span>';
+                    
+                    setTimeout(() => {
+                        btn.classList.remove('copied');
+                        btn.innerHTML = originalHTML;
+                    }, 2000);
+                }
+            } catch (err) {
+                console.error('Failed to copy message:', err);
+                alert('Failed to copy message');
+            }
+        };
+
+        // Copy code block
+        window.copyCode = async function(button) {
+            try {
+                const code = button.getAttribute('data-code');
+                if (!code) {
+                    throw new Error('No code found');
+                }
+                
+                await navigator.clipboard.writeText(code);
+                
+                // Visual feedback
+                const originalHTML = button.innerHTML;
+                button.classList.add('copied');
+                button.innerHTML = '<span>✓</span><span>Copied!</span>';
+                
+                setTimeout(() => {
+                    button.classList.remove('copied');
+                    button.innerHTML = originalHTML;
+                }, 2000);
+            } catch (err) {
+                console.error('Failed to copy code:', err);
+                alert('Failed to copy code');
+            }
+        };
+
         function escapeHtml(text) {
             const div = document.createElement('div');
             div.textContent = text;
