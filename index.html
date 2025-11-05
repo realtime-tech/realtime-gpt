@@ -91,6 +91,13 @@
             background: var(--accent-hover);
         }
 
+        .new-chat-btn:disabled {
+            background: var(--bg-tertiary);
+            color: var(--text-dim);
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
         .chat-list {
             flex: 1;
             overflow-y: auto;
@@ -654,7 +661,7 @@
             <div class="sidebar-header">
                 <div class="logo">Realtime-GPT</div>
                 <div class="logo-subtitle">Privacy-First AI</div>
-                <button class="new-chat-btn" onclick="createNewChat()">
+                <button class="new-chat-btn" id="newChatBtn" onclick="createNewChat()" disabled>
                     <span>➕</span>
                     <span>New Chat</span>
                 </button>
@@ -687,9 +694,8 @@
                 <div class="model-selector">
                     <select class="model-select" id="modelSelect" onchange="handleModelChange()">
                         <option value="">Select Model</option>
-                        <option value="Xenova/Qwen2.5-0.5B-Instruct">Qwen 2.5 (0.5B) - 320MB</option>
-                        <option value="HuggingFaceTB/SmolLM2-360M-Instruct">SmolLM2 (360M) - 220MB</option>
-                        <option value="Xenova/TinyLlama-1.1B-Chat-v1.0">TinyLlama (1.1B) - 670MB</option>
+                        <option value="Xenova/gpt2">GPT-2 (124M) - Best quality</option>
+                        <option value="Xenova/distilgpt2">DistilGPT-2 (82M) - Faster</option>
                     </select>
                     <div class="model-status">
                         <span class="status-dot" id="statusDot"></span>
@@ -707,20 +713,15 @@
                     <h1 class="welcome-title">Realtime-GPT</h1>
                     <p class="welcome-subtitle">Privacy-first local AI chat. Your data never leaves your device.</p>
                     <div class="model-cards">
-                        <div class="model-card" onclick="selectModel('Xenova/Qwen2.5-0.5B-Instruct')">
-                            <div class="model-card-name">Qwen 2.5 (0.5B)</div>
-                            <div class="model-card-size">~320MB</div>
-                            <div class="model-card-desc">Alibaba's efficient model. Best balance of speed and quality.</div>
+                        <div class="model-card" onclick="selectModel('Xenova/gpt2')">
+                            <div class="model-card-name">GPT-2 (124M)</div>
+                            <div class="model-card-size">~250MB</div>
+                            <div class="model-card-desc">Original GPT-2 model. Better quality responses, more coherent.</div>
                         </div>
-                        <div class="model-card" onclick="selectModel('HuggingFaceTB/SmolLM2-360M-Instruct')">
-                            <div class="model-card-name">SmolLM2 (360M)</div>
-                            <div class="model-card-size">~220MB</div>
-                            <div class="model-card-desc">HuggingFace's newest small model. Fast and coherent.</div>
-                        </div>
-                        <div class="model-card" onclick="selectModel('Xenova/TinyLlama-1.1B-Chat-v1.0')">
-                            <div class="model-card-name">TinyLlama (1.1B)</div>
-                            <div class="model-card-size">~670MB</div>
-                            <div class="model-card-desc">Chat-optimized Llama. Better quality, slower generation.</div>
+                        <div class="model-card" onclick="selectModel('Xenova/distilgpt2')">
+                            <div class="model-card-name">DistilGPT-2 (82M)</div>
+                            <div class="model-card-size">~170MB</div>
+                            <div class="model-card-desc">Smaller, faster version. Good for quick testing.</div>
                         </div>
                     </div>
                 </div>
@@ -818,10 +819,16 @@
 
         // Create new chat
         window.createNewChat = function() {
+            // Don't allow new chat without a loaded model
+            if (!state.generator) {
+                alert('Please load a model first before creating a new chat.');
+                return;
+            }
+            
             const chat = {
                 id: Date.now().toString(),
                 title: 'New Chat',
-                model: null,
+                model: state.currentModel,
                 messages: [],
                 createdAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString()
@@ -900,11 +907,6 @@
             const modelName = select.value;
             if (!modelName) return;
 
-            // If no current chat, create one
-            if (!state.currentChatId) {
-                createNewChat();
-            }
-
             await loadModel(modelName);
         };
 
@@ -932,11 +934,28 @@
 
                 state.currentModel = modelName;
 
-                // Update current chat's model
+                // Update current chat's model if one exists, otherwise create new chat
                 const currentChat = state.chats.find(c => c.id === state.currentChatId);
                 if (currentChat) {
                     currentChat.model = modelName;
                     saveStateToLocalStorage();
+                } else {
+                    // No current chat, create one now that model is loaded
+                    setTimeout(() => {
+                        const chat = {
+                            id: Date.now().toString(),
+                            title: 'New Chat',
+                            model: modelName,
+                            messages: [],
+                            createdAt: new Date().toISOString(),
+                            updatedAt: new Date().toISOString()
+                        };
+                        state.chats.unshift(chat);
+                        state.currentChatId = chat.id;
+                        saveStateToLocalStorage();
+                        renderChatList();
+                        updateUI();
+                    }, 100);
                 }
 
                 setTimeout(() => {
@@ -989,21 +1008,52 @@
             const typingId = addTypingIndicator();
 
             try {
-                const result = await state.generator(message, {
-                    max_new_tokens: state.settings.maxTokens,
-                    temperature: state.settings.temperature,
-                    top_k: state.settings.topK,
-                    do_sample: state.settings.temperature > 0,
-                    repetition_penalty: 1.2,
+                // Build conversation context for better responses
+                const conversationHistory = currentChat.messages
+                    .slice(-6) // Last 3 exchanges
+                    .map(m => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content}`)
+                    .join('\n');
+                
+                const prompt = conversationHistory 
+                    ? `${conversationHistory}\nUser: ${message}\nAssistant:`
+                    : `User: ${message}\nAssistant:`;
+
+                const result = await state.generator(prompt, {
+                    max_new_tokens: Math.min(state.settings.maxTokens, 150),
+                    temperature: 0.8,
+                    top_k: 40,
+                    top_p: 0.9,
+                    do_sample: true,
+                    repetition_penalty: 1.3,
+                    no_repeat_ngram_size: 3,
                 });
 
                 removeTypingIndicator(typingId);
 
                 let responseText = result[0].generated_text;
 
-                // Clean up response
+                // Extract only the assistant's response
+                if (responseText.includes('Assistant:')) {
+                    const parts = responseText.split('Assistant:');
+                    responseText = parts[parts.length - 1].trim();
+                }
+                
+                // Remove the user's message if it's still in there
                 if (responseText.startsWith(message)) {
                     responseText = responseText.slice(message.length).trim();
+                }
+                
+                // Clean up any remaining prompt artifacts
+                responseText = responseText
+                    .replace(/^User:.*$/gm, '')
+                    .replace(/^Assistant:.*$/gm, '')
+                    .trim();
+
+                // Stop at newlines that indicate end of response
+                const lines = responseText.split('\n');
+                if (lines.length > 1) {
+                    // Take first few meaningful lines
+                    responseText = lines.slice(0, 3).join('\n').trim();
                 }
 
                 if (!responseText || responseText.length < 3) {
@@ -1104,6 +1154,7 @@
             const welcomeScreen = document.getElementById('welcomeScreen');
             const messagesContainer = document.getElementById('messagesContainer');
             const sendBtn = document.getElementById('sendBtn');
+            const newChatBtn = document.getElementById('newChatBtn');
             const statusDot = document.getElementById('statusDot');
             const statusText = document.getElementById('statusText');
 
@@ -1111,9 +1162,11 @@
             if (state.generator) {
                 statusDot.className = 'status-dot ready';
                 statusText.textContent = state.currentModel ? state.currentModel.split('/')[1] : 'Model ready';
+                newChatBtn.disabled = false;
             } else {
                 statusDot.className = 'status-dot';
                 statusText.textContent = 'No model loaded';
+                newChatBtn.disabled = true;
             }
 
             // Update model select
