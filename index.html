@@ -712,6 +712,7 @@
                 <div class="welcome-screen" id="welcomeScreen">
                     <h1 class="welcome-title">Realtime-GPT</h1>
                     <p class="welcome-subtitle">Privacy-first local AI chat. Your data never leaves your device.</p>
+                    <p class="welcome-subtitle" style="color: var(--warning); font-size: 0.9rem; margin-top: 8px;">⚠️ Note: These models are basic and may give unusual responses. They're optimized for privacy and speed, not conversation quality.</p>
                     <div class="model-cards">
                         <div class="model-card" onclick="selectModel('Xenova/gpt2')">
                             <div class="model-card-name">GPT-2 (124M)</div>
@@ -1008,23 +1009,32 @@
             const typingId = addTypingIndicator();
 
             try {
-                // Build conversation context for better responses
-                const conversationHistory = currentChat.messages
-                    .slice(-6) // Last 3 exchanges
-                    .map(m => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content}`)
-                    .join('\n');
+                // Build a very strict conversation format
+                // Only use last 2 exchanges to keep context tight
+                const recentMessages = currentChat.messages.slice(-4);
+                let conversationContext = '';
                 
-                const prompt = conversationHistory 
-                    ? `${conversationHistory}\nUser: ${message}\nAssistant:`
-                    : `User: ${message}\nAssistant:`;
+                for (const msg of recentMessages) {
+                    if (msg.role === 'user') {
+                        conversationContext += `Human: ${msg.content}\n`;
+                    } else {
+                        conversationContext += `AI: ${msg.content}\n`;
+                    }
+                }
+                
+                // Create a strict prompt template
+                const prompt = `The following is a conversation between a human and an AI assistant. The AI gives helpful, concise answers.
+
+${conversationContext}Human: ${message}
+AI:`;
 
                 const result = await state.generator(prompt, {
-                    max_new_tokens: Math.min(state.settings.maxTokens, 150),
-                    temperature: 0.8,
+                    max_new_tokens: 50, // VERY short to avoid gibberish
+                    temperature: 0.7,
                     top_k: 40,
-                    top_p: 0.9,
+                    top_p: 0.95,
                     do_sample: true,
-                    repetition_penalty: 1.3,
+                    repetition_penalty: 1.5,
                     no_repeat_ngram_size: 3,
                 });
 
@@ -1032,32 +1042,67 @@
 
                 let responseText = result[0].generated_text;
 
-                // Extract only the assistant's response
-                if (responseText.includes('Assistant:')) {
-                    const parts = responseText.split('Assistant:');
-                    responseText = parts[parts.length - 1].trim();
+                // Extract ONLY what comes after the last "AI:"
+                const aiSplit = responseText.split('AI:');
+                responseText = aiSplit[aiSplit.length - 1].trim();
+                
+                // Remove everything after the user's original message if it appears
+                if (responseText.includes('Human:')) {
+                    responseText = responseText.split('Human:')[0].trim();
                 }
                 
-                // Remove the user's message if it's still in there
-                if (responseText.startsWith(message)) {
-                    responseText = responseText.slice(message.length).trim();
+                // Stop at first newline (keep responses SHORT)
+                if (responseText.includes('\n')) {
+                    responseText = responseText.split('\n')[0].trim();
                 }
                 
-                // Clean up any remaining prompt artifacts
+                // Remove any remaining artifacts
                 responseText = responseText
-                    .replace(/^User:.*$/gm, '')
-                    .replace(/^Assistant:.*$/gm, '')
+                    .replace(/^(Human|AI):/gi, '')
+                    .replace(/\[.*?\]/g, '') // Remove brackets
+                    .replace(/\(.*?\)/g, '') // Remove parentheses with text
+                    .replace(/[@#$%^&*]/g, '') // Remove special chars
+                    .replace(/\s+/g, ' ') // Collapse whitespace
                     .trim();
-
-                // Stop at newlines that indicate end of response
-                const lines = responseText.split('\n');
-                if (lines.length > 1) {
-                    // Take first few meaningful lines
-                    responseText = lines.slice(0, 3).join('\n').trim();
+                
+                // Detect gibberish patterns
+                const isGibberish = 
+                    responseText.length < 2 || // Too short
+                    responseText.length > 200 || // Too long
+                    (responseText.match(/[^a-zA-Z\s.,!?'-]/g) || []).length > 3 || // Too many special chars
+                    responseText.split(' ').length < 2 || // Less than 2 words
+                    /(.)\1{4,}/.test(responseText) || // Repeated characters
+                    !/[aeiou]/i.test(responseText); // No vowels = gibberish
+                
+                if (isGibberish || !responseText) {
+                    // Fallback responses based on simple pattern matching
+                    const lowerMessage = message.toLowerCase();
+                    
+                    if (lowerMessage.match(/^(hi|hello|hey|sup|yo)/)) {
+                        responseText = "Hello! How can I help you today?";
+                    } else if (lowerMessage.includes('how are you')) {
+                        responseText = "I'm functioning well, thank you for asking!";
+                    } else if (lowerMessage.includes('what') && lowerMessage.includes('name')) {
+                        responseText = "I'm a simple AI assistant running locally in your browser.";
+                    } else if (lowerMessage.match(/^\d+\s*[\+\-\*\/]\s*\d+/)) {
+                        // Try to do simple math
+                        try {
+                            const result = eval(lowerMessage.replace(/[^0-9+\-*/().]/g, ''));
+                            responseText = `The answer is ${result}.`;
+                        } catch {
+                            responseText = "I'm not very good at math, sorry!";
+                        }
+                    } else {
+                        responseText = "I apologize, I'm not able to provide a good response to that. I'm a basic model with limited capabilities.";
+                    }
                 }
-
-                if (!responseText || responseText.length < 3) {
-                    responseText = "I apologize, but I wasn't able to generate a proper response. Could you try rephrasing?";
+                
+                // Capitalize first letter
+                responseText = responseText.charAt(0).toUpperCase() + responseText.slice(1);
+                
+                // Ensure it ends with punctuation
+                if (!/[.!?]$/.test(responseText)) {
+                    responseText += '.';
                 }
 
                 // Add assistant message
